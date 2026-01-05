@@ -18,7 +18,7 @@ TARGET_PROCESS_NAMES = ["BrowserAsWallpaper.exe", "BrowserAsWallpaper", "python3
 # Global process handle
 app_process = None
 
-def kill_browser-as-wallpaper_processes():
+def kill_browser_as_wallpaper_processes():
     """Cleanly stops any running instances of the application."""
     _kill_process_tree()
     _kill_lingering_processes_by_name()
@@ -97,7 +97,7 @@ def _launch_linux():
 
 def restart_environment():
     """Orchestrates the full stop-build-start cycle."""
-    kill_browser-as-wallpaper_processes()
+    kill_browser_as_wallpaper_processes()
     if run_build_script():
         launch_application()
 
@@ -147,6 +147,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n[Dev] Shutting down...")
         observer.stop()
-        kill_browser-as-wallpaper_processes()
+        kill_browser_as_wallpaper_processes()
     
     observer.join()
