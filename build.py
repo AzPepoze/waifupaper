@@ -10,61 +10,38 @@ def run_command(cmd, cwd=None):
         print(f"Error executing {cmd}: {e}")
         sys.exit(1)
 
-def main():
-    project_root = os.path.dirname(os.path.abspath(__file__))
-    src_dir = os.path.join(project_root, "src")
-    release_dir = os.path.join(project_root, "release")
-    build_dir = os.path.join(project_root, "build")
-    
-    # Clean previous builds
-    if os.path.exists(release_dir):
-        shutil.rmtree(release_dir)
-    os.makedirs(release_dir)
+def install_python_deps(src_dir):
+    print("\n[Python] Checking dependencies...")
+    if sys.platform == "linux":
+        linux_req_file = os.path.join(src_dir, "linux", "requirements.txt")
+        if os.path.exists(linux_req_file):
+            run_command([sys.executable, "-m", "pip", "install", "-r", linux_req_file])
+    else:
+        print("Skipping Python dependencies installation (not on Linux).")
 
-    print("--- WaifuPaper Build System ---")
-
-    # --- 1. FRONTEND BUILD ---
+def build_frontend(src_dir):
     print("\n[Frontend] Building Svelte App...")
     frontend_dir = os.path.join(src_dir, "frontend")
     
-    # Check if node_modules exists, install if not
     if not os.path.exists(os.path.join(frontend_dir, "node_modules")):
         print("Installing frontend dependencies...")
         run_command(["pnpm", "install"], cwd=frontend_dir)
     
-    # Build
     run_command(["pnpm", "build"], cwd=frontend_dir)
 
-    # Verify dist folder
     dist_dir = os.path.join(frontend_dir, "dist")
     if not os.path.exists(dist_dir) or not os.listdir(dist_dir):
-        print("ERROR: Frontend build failed to produce assets in 'dist' folder.")
+        print("ERROR: Frontend build failed.")
         sys.exit(1)
-    print(f"Frontend build verified: {len(os.listdir(dist_dir))} files in dist.")
+    return dist_dir
 
-
-    # --- 2. WINDOWS BUILD ---
-    print("\n[Windows] Building Executable...")
+def build_windows(src_dir, build_dir):
+    print("\n[Windows] Building C# Executable...")
     win_project_path = os.path.join(src_dir, "windows", "WaifuPaper.csproj")
-    
-    # Pre-clean source directories
-    print("Pre-cleaning windows source directories...")
-    dirs_to_clean = [
-        os.path.join(src_dir, "windows", "obj"),
-        os.path.join(src_dir, "windows", "bin")
-    ]
-    for d in dirs_to_clean:
-        if os.path.exists(d):
-            shutil.rmtree(d)
-
     win_bin_path = os.path.join(build_dir, "windows_bin")
     win_obj_path = os.path.join(build_dir, "windows_obj")
     win_publish_path = os.path.join(build_dir, "windows_publish")
 
-    # Need to make sure the EmbeddedResource path in csproj is correct relative to csproj location
-    # Since we moved everything, relative paths like ..\frontend\dist should still work 
-    # because src/windows/.. is src/ which contains src/frontend.
-    
     cmd = [
         "dotnet", "publish", win_project_path,
         "-c", "Release",
@@ -77,71 +54,82 @@ def main():
         f"-p:BaseIntermediateOutputPath={win_obj_path}/",
         "-o", win_publish_path
     ]
-    
-    try:
-        subprocess.run(cmd, check=True)
-        
-        # Copy Frontend Dist to frontend/dist (relative to exe in publish path)
-        print("Copying frontend assets to Windows publish directory...")
-        win_frontend_dist_dst = os.path.join(win_publish_path, "frontend", "dist")
-        if os.path.exists(win_frontend_dist_dst):
-            shutil.rmtree(win_frontend_dist_dst)
-        shutil.copytree(dist_dir, win_frontend_dist_dst)
+    run_command(cmd)
+    return win_publish_path
 
-        # Zip Windows
-        win_zip_path = os.path.join(release_dir, "windows")
-        shutil.make_archive(win_zip_path, 'zip', win_publish_path)
-        print(f"[Windows] Zip created: {win_zip_path}.zip")
+def pack_windows(win_publish_path, dist_dir, release_dir):
+    print("\n[Windows] Packaging...")
+    win_frontend_dist_dst = os.path.join(win_publish_path, "frontend", "dist")
+    if os.path.exists(win_frontend_dist_dst):
+        shutil.rmtree(win_frontend_dist_dst)
+    shutil.copytree(dist_dir, win_frontend_dist_dst)
 
-    except subprocess.CalledProcessError as e:
-        print(f"[Windows] Build failed: {e}")
+    win_zip_path = os.path.join(release_dir, "windows")
+    shutil.make_archive(win_zip_path, 'zip', win_publish_path)
+    print(f"Windows Zip created: {win_zip_path}.zip")
 
+def build_linux(src_dir, build_dir):
+    print("\n[Linux] Preparing Build...")
+    linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
+    if os.path.exists(linux_pkg_dir):
+        shutil.rmtree(linux_pkg_dir)
+    os.makedirs(linux_pkg_dir)
 
-    # --- 3. LINUX PACKAGING ---
+    linux_src_dir = os.path.join(src_dir, "linux")
+    for item in os.listdir(linux_src_dir):
+        s = os.path.join(linux_src_dir, item)
+        d = os.path.join(linux_pkg_dir, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d)
+        else:
+            shutil.copy2(s, d)
+    return linux_pkg_dir
+
+def pack_linux(linux_pkg_dir, dist_dir, release_dir):
     print("\n[Linux] Packaging...")
+    frontend_dist_dst = os.path.join(linux_pkg_dir, "frontend", "dist")
+    if os.path.exists(frontend_dist_dst):
+        shutil.rmtree(frontend_dist_dst)
+    shutil.copytree(dist_dir, frontend_dist_dst)
+
+    linux_zip_path = os.path.join(release_dir, "linux")
+    shutil.make_archive(linux_zip_path, 'zip', linux_pkg_dir)
+    print(f"Linux Zip created: {linux_zip_path}.zip")
+
+def main():
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.join(project_root, "src")
+    release_dir = os.path.join(project_root, "release")
+    build_dir = os.path.join(project_root, "build")
+    
+    if os.path.exists(release_dir):
+        shutil.rmtree(release_dir)
+    os.makedirs(release_dir)
+
+    print("--- WaifuPaper Build System ---")
+
+    # 1. Setup Dependencies
+    install_python_deps(src_dir)
+
+    # 2. Build Frontend (Shared)
+    dist_dir = build_frontend(src_dir)
+
+    # 3. Handle Windows Build/Pack
     try:
-        linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
-        if os.path.exists(linux_pkg_dir):
-            shutil.rmtree(linux_pkg_dir)
-        os.makedirs(linux_pkg_dir)
-
-        # Copy EVERYTHING from src/linux to the root of the package
-        linux_src_dir = os.path.join(src_dir, "linux")
-        for item in os.listdir(linux_src_dir):
-            s = os.path.join(linux_src_dir, item)
-            d = os.path.join(linux_pkg_dir, item)
-            if os.path.isdir(s):
-                shutil.copytree(s, d)
-            else:
-                shutil.copy2(s, d)
-        
-        # Copy Frontend Dist to frontend/dist (relative to server.py in root)
-        frontend_dist_src = os.path.join(src_dir, "frontend", "dist")
-        frontend_dist_dst = os.path.join(linux_pkg_dir, "frontend", "dist")
-        shutil.copytree(frontend_dist_src, frontend_dist_dst)
-
-        # Zip Linux
-        linux_zip_path = os.path.join(release_dir, "linux")
-        shutil.make_archive(linux_zip_path, 'zip', linux_pkg_dir)
-        print(f"[Linux] Zip created: {linux_zip_path}.zip")
-
+        # We can build Windows on any platform with .NET SDK installed
+        win_publish_path = build_windows(src_dir, build_dir)
+        pack_windows(win_publish_path, dist_dir, release_dir)
     except Exception as e:
-        print(f"[Linux] Packaging failed: {e}")
+        print(f"Windows build/pack skipped or failed: {e}")
 
+    # 4. Handle Linux Build/Pack
+    try:
+        linux_pkg_dir = build_linux(src_dir, build_dir)
+        pack_linux(linux_pkg_dir, dist_dir, release_dir)
+    except Exception as e:
+        print(f"Linux build/pack skipped or failed: {e}")
 
-    # --- CLEANUP ---
-    print("\n[Cleanup] Cleaning up stray source artifacts...")
-    stray_dirs = [
-        os.path.join(src_dir, "windows", "obj"),
-        os.path.join(src_dir, "windows", "bin")
-    ]
-    for d in stray_dirs:
-        if os.path.exists(d):
-            shutil.rmtree(d)
-            print(f"Removed stray directory: {d}")
-
-    print(f"\nBuild Complete! Releases are in '{release_dir}'")
-    print(f"Build artifacts in '{build_dir}'")
+    print(f"\nBuild Process Finished. Check '{release_dir}' for outputs.")
 
 if __name__ == "__main__":
     main()

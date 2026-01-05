@@ -53,23 +53,24 @@ _Note: For other distributions, please find the equivalent packages (e.g., `libg
 1. Download the latest `waifupaper_v*_windows.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
 2. Extract and run `WaifuPaper.exe`.
 
-## Development & Building
+## Prerequisites (Windows Build)
 
-### Prerequisites
+To build this project on Windows, you need to install the following:
 
--    **Node.js & pnpm:** For building the frontend.
--    **Python 3:** For running/packaging the Linux version.
--    **.NET 8 SDK:** For compiling the Windows version.
+- **[Node.js](https://nodejs.org/en/download/prebuilt-installer)**
+- **[pnpm](https://pnpm.io/installation)**
+- **[Python 3](https://www.python.org/downloads/windows/)** (Make sure to check "Add Python to PATH" during installation)
+- **[.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)**
 
-### Build Instructions
+## Build Instructions
 
-Run the automated build script to generate releases for both platforms:
+Run the build script from the project root:
 
-```bash
-python3 build.py
+```powershell
+python build.py
 ```
 
-Outputs will be generated in the `release/` directory.
+The output will be located in the `release/` folder.
 
 ## Acknowledgments
 
