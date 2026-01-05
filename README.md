@@ -1,12 +1,12 @@
 <p align="center">
   <h1 align="center">🌸 WaifuPaper 🌸</h1>
-  <img src="https://img.shields.io/badge/version-1.0.0-blue" />
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-lightgrey" />
+  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" />
 </p>
 
 A modern, cross-platform live wallpaper application that displays random high-quality anime wallpapers from Konachan directly on your desktop.
 
 ## Preview
+
 ![Preview](showcase/screen1.png)
 
 ## Contents
@@ -31,8 +31,6 @@ A modern, cross-platform live wallpaper application that displays random high-qu
 
 Requires `GTK4`, `WebKitGTK`, and `gtk4-layer-shell`. These dependencies must be installed via your system's package manager.
 
-
-
 **Example (Arch Linux):**
 
 ```bash
@@ -41,9 +39,7 @@ sudo pacman -S gtk4 webkitgtk-6.0 gtk4-layer-shell libayatana-appindicator pytho
 
 ```
 
-*Note: For other distributions, please find the equivalent packages (e.g., `libgtk-4-dev`, `libwebkit2gtk-4.1-dev` on Debian/Ubuntu).*
-
-
+_Note: For other distributions, please find the equivalent packages (e.g., `libgtk-4-dev`, `libwebkit2gtk-4.1-dev` on Debian/Ubuntu)._
 
 1. Download the latest `waifupaper_v*_linux.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
 2. Extract the archive.
