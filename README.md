@@ -1,17 +1,21 @@
 <p align="center">
   <h1 align="center">🌸 WaifuPaper 🌸</h1>
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" />
+  <img src="https://img.shields.io/badge/version-1.0.0-blue" />
+  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-lightgrey" />
 </p>
 
 A modern, cross-platform live wallpaper application that displays random high-quality anime wallpapers from Konachan directly on your desktop.
 
+## Preview
+![Preview](showcase/screen1.png)
+
 ## Contents
 
 -    [Features](#features)
--    [Installation & Usage](#installation--usage)
+-    [Installation &amp; Usage](#installation--usage)
      -    [Linux](#linux-wayland)
      -    [Windows](#windows)
--    [Development & Building](#development--building)
+-    [Development &amp; Building](#development--building)
 -    [Acknowledgments](#acknowledgments)
 
 ## Features
@@ -20,29 +24,38 @@ A modern, cross-platform live wallpaper application that displays random high-qu
 -    **Interactive UI:** Smooth crossfade transitions and a modern "Random" button with backdrop blur.
 -    **System Tray:** Minimal footprint with a system tray icon for easy exit.
 -    **Lightweight:** Low resource usage, serving content via a local embedded proxy.
--    **Bypass Blocks:** Integrated proxy system to ensure images load even if the source is restricted by ISP.
 
 ## Installation & Usage
 
 ### Linux (Wayland)
-Requires `GTK4`, `WebKitGTK`, and `gtk4-layer-shell`.
 
-**Arch Linux:**
+Requires `GTK4`, `WebKitGTK`, and `gtk4-layer-shell`. These dependencies must be installed via your system's package manager.
+
+
+
+**Example (Arch Linux):**
+
 ```bash
+
 sudo pacman -S gtk4 webkitgtk-6.0 gtk4-layer-shell libayatana-appindicator python-gobject
+
 ```
+
+*Note: For other distributions, please find the equivalent packages (e.g., `libgtk-4-dev`, `libwebkit2gtk-4.1-dev` on Debian/Ubuntu).*
+
+
 
 1. Download the latest `waifupaper_v*_linux.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
 2. Extract the archive.
 3. Run the launcher:
-   ```bash
-   ./waifupaper.sh
-   ```
+     ```bash
+     ./waifupaper.sh
+     ```
 
 ### Windows
+
 1. Download the latest `waifupaper_v*_windows.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
 2. Extract and run `WaifuPaper.exe`.
-   - *Note: On the first run, it may prompt to install the WebView2 Runtime if not present.*
 
 ## Development & Building
 
