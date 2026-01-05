@@ -44,7 +44,7 @@ public class WaifuPaperWindow : Form
         this.ShowInTaskbar = false;
         
         // Start Local Server
-        server = new EmbeddedServer("http://localhost:43210/");
+        server = new EmbeddedServer("http://127.0.0.1:43210/");
         Task.Run(() => server.Start());
 
         // Initialize UI Components
@@ -73,8 +73,15 @@ public class WaifuPaperWindow : Form
 
     async void InitializeAsync()
     {
-        await webView.EnsureCoreWebView2Async();
-        webView.CoreWebView2.Navigate("http://localhost:43210/");
+        try
+        {
+            await webView.EnsureCoreWebView2Async();
+            webView.CoreWebView2.Navigate("http://127.0.0.1:43210/");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"WebView2 Initialization Error: {ex.Message}\n\nMake sure WebView2 Runtime is installed.", "WaifuPaper Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
         
         // Pin to Desktop
         PinToDesktop();

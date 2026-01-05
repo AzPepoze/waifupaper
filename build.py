@@ -35,6 +35,13 @@ def main():
     # Build
     run_command(["pnpm", "build"], cwd=frontend_dir)
 
+    # Verify dist folder
+    dist_dir = os.path.join(frontend_dir, "dist")
+    if not os.path.exists(dist_dir) or not os.listdir(dist_dir):
+        print("ERROR: Frontend build failed to produce assets in 'dist' folder.")
+        sys.exit(1)
+    print(f"Frontend build verified: {len(os.listdir(dist_dir))} files in dist.")
+
 
     # --- 2. WINDOWS BUILD ---
     print("\n[Windows] Building Executable...")
@@ -74,6 +81,13 @@ def main():
     try:
         subprocess.run(cmd, check=True)
         
+        # Copy Frontend Dist to frontend/dist (relative to exe in publish path)
+        print("Copying frontend assets to Windows publish directory...")
+        win_frontend_dist_dst = os.path.join(win_publish_path, "frontend", "dist")
+        if os.path.exists(win_frontend_dist_dst):
+            shutil.rmtree(win_frontend_dist_dst)
+        shutil.copytree(dist_dir, win_frontend_dist_dst)
+
         # Zip Windows
         win_zip_path = os.path.join(release_dir, "windows")
         shutil.make_archive(win_zip_path, 'zip', win_publish_path)

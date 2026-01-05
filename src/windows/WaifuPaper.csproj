@@ -14,9 +14,4 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Embed the frontend build artifacts -->
-    <EmbeddedResource Include="..\frontend\dist\**\*" />
-  </ItemGroup>
-
 </Project>
