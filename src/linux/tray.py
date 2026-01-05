@@ -5,7 +5,14 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib
-from constants import APP_NAME
+
+# Default App Name
+APP_NAME = "BrowserAsWallpaper"
+
+# Get info from arguments if available
+# argv[1] = parent_pid, argv[2] = app_name
+if len(sys.argv) > 2:
+    APP_NAME = sys.argv[2]
 
 GLib.set_prgname(APP_NAME)
 GLib.set_application_name(APP_NAME)
@@ -31,7 +38,6 @@ def quit_app(source):
             os.kill(parent_pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
-    
     Gtk.main_quit()
 
 def build_menu():
@@ -53,7 +59,7 @@ def main():
     )
     indicator.set_status(APP_INDICATOR.IndicatorStatus.ACTIVE)
     indicator.set_menu(build_menu())
-    indicator.set_label(APP_NAME, "browser-as-wallpaper")
+    indicator.set_label(APP_NAME, APP_NAME)
     
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     Gtk.main()

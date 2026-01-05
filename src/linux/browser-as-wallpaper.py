@@ -2,6 +2,7 @@ import os
 import sys
 import ctypes
 import subprocess
+import json
 import gi
 
 os.environ["GDK_BACKEND"] = "wayland"
@@ -29,10 +30,22 @@ class BrowserAsWallpaperApp(Gtk.Application):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
         self.tray_process = None
         self.project_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config = self.load_config()
+
+    def load_config(self):
+        config_path = os.path.join(os.path.dirname(self.project_dir), "config.json")
+        default_config = {"url": DEFAULT_URL, "app_name": "BrowserAsWallpaper", "user_agent": ""}
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error loading config: {e}")
+        return default_config
 
     def do_activate(self):
-        self.start_service("tray.py", str(os.getpid()))
-
+        app_name = self.config.get("app_name", "BrowserAsWallpaper")
+        self.start_service("tray.py", str(os.getpid()), app_name)
         window = Gtk.Window(application=self)
         self.setup_layershell(window)
         self.setup_webview(window)
@@ -53,12 +66,10 @@ class BrowserAsWallpaperApp(Gtk.Application):
     def setup_layershell(self, window):
         LayerShell.init_for_window(window)
         LayerShell.set_layer(window, LayerShell.Layer.BOTTOM)
-
         try:
             LayerShell.set_keyboard_mode(window, LayerShell.KeyboardMode.ON_DEMAND)
         except AttributeError:
             pass
-
         LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
         LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
         LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
@@ -69,7 +80,13 @@ class BrowserAsWallpaperApp(Gtk.Application):
         web_view = WebKit.WebView()
         settings = web_view.get_settings()
         settings.set_enable_developer_extras(True)
-        web_view.load_uri(DEFAULT_URL)
+        
+        user_agent = self.config.get("user_agent")
+        if user_agent:
+            settings.set_user_agent(user_agent)
+            
+        url = self.config.get("url", DEFAULT_URL)
+        web_view.load_uri(url)
         window.set_child(web_view)
 
     def do_shutdown(self):

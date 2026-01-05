@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">🌸 BrowserAsWallpaper 🌸</h1>
+  <h1 align="center">BrowserAsWallpaper</h1>
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" />
 </p>
 

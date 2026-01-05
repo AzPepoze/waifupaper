@@ -43,7 +43,6 @@ def build_windows_component(name, project_path, build_dir):
     proj_build_bin = os.path.join(build_dir, f"win_{name}_bin")
     proj_build_obj = os.path.join(build_dir, f"win_{name}_obj")
 
-    # Mode: Framework-Dependent, Shared DLLs (Most stable and smallest)
     cmd = [
         "dotnet", "publish", project_path,
         "-c", "Release",
@@ -61,37 +60,32 @@ def build_windows_component(name, project_path, build_dir):
     return temp_publish
 
 def cleanup_windows_files(path):
-    # 1. Remove localized resource folders
     cultures = ["cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant"]
     for culture in cultures:
         culture_path = os.path.join(path, culture)
         if os.path.isdir(culture_path): shutil.rmtree(culture_path)
     
-    # 2. Remove Debug symbols, XML, and Dependency metadata
     for item in os.listdir(path):
         if item.endswith(".pdb") or item.endswith(".xml") or item.endswith(".deps.json"):
             file_path = os.path.join(path, item)
             if os.path.isfile(file_path): os.remove(file_path)
             
-    # 3. Remove unused WPF library (we use WinForms)
     wpf_dll = os.path.join(path, "Microsoft.Web.WebView2.Wpf.dll")
     if os.path.isfile(wpf_dll): os.remove(wpf_dll)
     
-    # 4. Remove redundant runtimes folder (WebView2Loader is already at root)
     runtimes_path = os.path.join(path, "runtimes")
     if os.path.isdir(runtimes_path): shutil.rmtree(runtimes_path)
 
-def windows_track(src_dir, build_dir, dist_dir, dist_output, release_output, no_pack):
+def windows_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack):
     try:
         safe_print("[Windows] Starting Parallel Track...")
         components = {
-            "server": os.path.join(src_dir, "windows", "Server", "Server.csproj"),
             "webview": os.path.join(src_dir, "windows", "WebView", "WebView.csproj"),
             "main": os.path.join(src_dir, "windows", "Main", "Main.csproj")
         }
 
         temp_folders = {}
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             future_to_name = {executor.submit(build_windows_component, name, path, build_dir): name for name, path in components.items()}
             for future in concurrent.futures.as_completed(future_to_name):
                 temp_folders[future_to_name[future]] = future.result()
@@ -101,7 +95,6 @@ def windows_track(src_dir, build_dir, dist_dir, dist_output, release_output, no_
         if os.path.exists(final_win_root): shutil.rmtree(final_win_root)
         os.makedirs(final_win_root)
 
-        # Merge all into root
         for folder in temp_folders.values():
             for item in os.listdir(folder):
                 src, dst = os.path.join(folder, item), os.path.join(final_win_root, item)
@@ -111,7 +104,10 @@ def windows_track(src_dir, build_dir, dist_dir, dist_output, release_output, no_
                     if not os.path.exists(dst): shutil.copy2(src, dst)
         
         cleanup_windows_files(final_win_root)
-        shutil.copytree(dist_dir, os.path.join(final_win_root, "frontend", "dist"))
+        
+        config_src = os.path.join(src_dir, "config.json")
+        if os.path.exists(config_src):
+            shutil.copy2(config_src, os.path.join(final_win_root, "config.json"))
 
         if not no_pack:
             safe_print("[Windows] Creating Zip archive...")
@@ -121,7 +117,7 @@ def windows_track(src_dir, build_dir, dist_dir, dist_output, release_output, no_
     except Exception as e:
         safe_print(f"[Windows] Track failed: {e}")
 
-def build_linux_track(src_dir, build_dir, dist_dir, dist_output, release_output, no_pack):
+def build_linux_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack):
     try:
         safe_print("[Linux] Starting Track...")
         linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
@@ -136,7 +132,10 @@ def build_linux_track(src_dir, build_dir, dist_dir, dist_output, release_output,
         final_linux_root = os.path.join(dist_output, "linux")
         if os.path.exists(final_linux_root): shutil.rmtree(final_linux_root)
         shutil.copytree(linux_pkg_dir, final_linux_root)
-        shutil.copytree(dist_dir, os.path.join(final_linux_root, "frontend", "dist"))
+        
+        config_src = os.path.join(src_dir, "config.json")
+        if os.path.exists(config_src):
+            shutil.copy2(config_src, os.path.join(final_linux_root, "config.json"))
 
         if not no_pack:
             shutil.make_archive(os.path.join(release_output, "linux"), 'zip', final_linux_root)
@@ -158,12 +157,11 @@ def main():
 
     safe_print("--- BrowserAsWallpaper Build System ---")
     total_start = time.time()
-    dist_dir = build_frontend(src_dir)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
-            executor.submit(windows_track, src_dir, build_dir, dist_dir, dist_output, release_output, no_pack),
-            executor.submit(build_linux_track, src_dir, build_dir, dist_dir, dist_output, release_output, no_pack)
+            executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack),
+            executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack)
         ]
         concurrent.futures.wait(futures)
 
