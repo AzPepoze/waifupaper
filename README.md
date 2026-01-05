@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" />
 </p>
 
-A modern, cross-platform live wallpaper application that displays random high-quality anime wallpapers from Konachan directly on your desktop.
+A modern, cross-platform live wallpaper application that displays random high-quality anime wallpapers directly on your desktop.
 
 ![Preview](showcase/screen1.png)
 
