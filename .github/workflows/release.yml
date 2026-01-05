@@ -38,12 +38,17 @@ jobs:
       - name: Build and Package
         run: python3 build.py
 
+      - name: Rename Release Files
+        run: |
+          mv release/windows.zip release/waifupaper_${{ github.ref_name }}_windows.zip
+          mv release/linux.zip release/waifupaper_${{ github.ref_name }}_linux.zip
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release/windows.zip
-            release/linux.zip
+            release/waifupaper_${{ github.ref_name }}_windows.zip
+            release/waifupaper_${{ github.ref_name }}_linux.zip
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
