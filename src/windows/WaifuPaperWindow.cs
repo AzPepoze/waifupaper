@@ -1,117 +1,143 @@
-using System.Runtime.InteropServices;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace WaifuPaper;
 
 public class WaifuPaperWindow : Form
 {
-    private WebView2 webView;
-    private NotifyIcon trayIcon;
-    private ContextMenuStrip trayMenu;
-    private EmbeddedServer server;
+	private static EmbeddedServer? sharedServer;
+	private static readonly object serverLock = new object();
+	private WebView2 webView;
+	private Screen currentScreen;
 
-    // Win32 APIs
-    [DllImport("user32.dll", SetLastError = true)]
-    static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
+	public WaifuPaperWindow(Screen screen)
+	{
+		this.currentScreen = screen;
 
-    [DllImport("user32.dll", SetLastError = true)]
-    static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+		this.FormBorderStyle = FormBorderStyle.None;
+		this.WindowState = FormWindowState.Normal;
+		this.StartPosition = FormStartPosition.Manual;
+		this.ShowInTaskbar = false;
 
-    [DllImport("user32.dll", SetLastError = true)]
-    static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+		this.Location = screen.Bounds.Location;
+		this.Size = screen.Bounds.Size;
 
-    [DllImport("user32.dll", SetLastError = true)]
-    static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+		lock (serverLock)
+		{
+			if (sharedServer == null)
+			{
+				sharedServer = new EmbeddedServer("http://127.0.0.1:43210/");
+				Task.Run(() => sharedServer.Start());
+			}
+		}
 
-    [DllImport("user32.dll")]
-    static extern IntPtr FindWindowEx(IntPtr hWndParent, IntPtr hWndChildAfter, string? lpszClass, string? lpszWindow);
+		webView = new WebView2();
+		webView.Dock = DockStyle.Fill;
+		webView.DefaultBackgroundColor = Color.Black;
+		this.Controls.Add(webView);
 
-    [DllImport("user32.dll")]
-    static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+		InitializeWebViewAsync();
+	}
 
-    static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
-    const uint SWP_NOSIZE = 0x0001;
-    const uint SWP_NOMOVE = 0x0002;
-    const uint SWP_NOACTIVATE = 0x0010;
+	protected override async void OnLoad(EventArgs e)
+	{
+		base.OnLoad(e);
+		await Task.Delay(1000);
+		PinToDesktop();
+	}
 
-    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+	protected override CreateParams CreateParams
+	{
+		get
+		{
+			CreateParams cp = base.CreateParams;
+			cp.ExStyle |= 0x80 | 0x08000000;
+			return cp;
+		}
+	}
 
-    public WaifuPaperWindow()
-    {
-        this.FormBorderStyle = FormBorderStyle.None;
-        this.WindowState = FormWindowState.Maximized;
-        this.ShowInTaskbar = false;
-        
-        // Start Local Server
-        server = new EmbeddedServer("http://127.0.0.1:43210/");
-        Task.Run(() => server.Start());
+	private async void InitializeWebViewAsync()
+	{
+		try
+		{
+			await webView.EnsureCoreWebView2Async();
+			webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+			webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+			webView.CoreWebView2.Navigate("http://127.0.0.1:43210/");
+		}
+		catch { }
+	}
 
-        // Initialize UI Components
-        webView = new WebView2();
-        webView.Dock = DockStyle.Fill;
-        this.Controls.Add(webView);
+	private void PinToDesktop()
+	{
+		IntPtr progman = NativeMethods.FindWindow("Progman", null);
+		if (progman == IntPtr.Zero)
+		{
+			MessageBox.Show("Debug: Progman not found");
+			return;
+		}
 
-        trayMenu = new ContextMenuStrip();
-        trayMenu.Items.Add("Exit", null, OnExit);
+		NativeMethods.SendMessageTimeout(progman, 0x052C, new IntPtr(0), IntPtr.Zero, 0x0000, 1000, out _);
 
-        trayIcon = new NotifyIcon();
-        trayIcon.Text = "WaifuPaper";
-        trayIcon.Icon = SystemIcons.Application; 
-        trayIcon.ContextMenuStrip = trayMenu;
-        trayIcon.Visible = true;
-        
-        InitializeAsync();
-    }
+		IntPtr workerW = IntPtr.Zero;
+		IntPtr shellDll = IntPtr.Zero;
 
-    private void OnExit(object? sender, EventArgs e)
-    {
-        server.Stop();
-        trayIcon.Visible = false;
-        Application.Exit();
-    }
+		NativeMethods.EnumWindows((tophandle, topparamhandle) =>
+		{
+			IntPtr foundShell = NativeMethods.FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null);
+			if (foundShell != IntPtr.Zero)
+			{
+				shellDll = foundShell;
+				workerW = NativeMethods.FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null);
+			}
+			return true;
+		}, IntPtr.Zero);
 
-    async void InitializeAsync()
-    {
-        try
-        {
-            await webView.EnsureCoreWebView2Async();
-            webView.CoreWebView2.Navigate("http://127.0.0.1:43210/");
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"WebView2 Initialization Error: {ex.Message}\n\nMake sure WebView2 Runtime is installed.", "WaifuPaper Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        
-        // Pin to Desktop
-        PinToDesktop();
-    }
+		if (workerW == IntPtr.Zero)
+		{
+			NativeMethods.EnumWindows((tophandle, topparamhandle) =>
+			{
+				StringBuilder className = new StringBuilder(256);
+				NativeMethods.GetClassName(tophandle, className, className.Capacity);
+				if (className.ToString() == "WorkerW")
+				{
+					IntPtr foundShell = NativeMethods.FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null);
+					if (foundShell == IntPtr.Zero)
+					{
+						workerW = tophandle;
+					}
+				}
+				return true;
+			}, IntPtr.Zero);
+		}
 
-    private void PinToDesktop()
-    {
-        IntPtr progman = FindWindow("Progman", null);
-        IntPtr result = IntPtr.Zero;
-        SendMessageTimeout(progman, 0x052C, new IntPtr(0), IntPtr.Zero, 0x0000, 1000, out result);
+		if (workerW != IntPtr.Zero)
+		{
+			MessageBox.Show($"Debug: Found WorkerW {workerW}. Parenting window...");
+			
+			NativeMethods.SetParent(this.Handle, workerW);
+			
+			int style = NativeMethods.GetWindowLong(this.Handle, NativeMethods.GWL_STYLE);
+			style |= NativeMethods.WS_CHILD;
+			style &= ~NativeMethods.WS_POPUP;
+			NativeMethods.SetWindowLong(this.Handle, NativeMethods.GWL_STYLE, style);
 
-        IntPtr workerW = IntPtr.Zero;
-        EnumWindows(new EnumWindowsProc((tophandle, topparamhandle) =>
-        {
-            IntPtr p = FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null);
-            if (p != IntPtr.Zero)
-            {
-                workerW = FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null);
-            }
-            return true;
-        }), IntPtr.Zero);
+			this.Location = new Point(0, 0);
+			this.Size = currentScreen.Bounds.Size;
 
-        if (workerW != IntPtr.Zero)
-        {
-            SetParent(this.Handle, workerW);
-            this.Bounds = Screen.PrimaryScreen!.Bounds;
-            this.Location = new Point(0, 0);
-            
-            // On Windows, reparenting to WorkerW often makes it non-interactive.
-            // But for many users, this is the desired "True Wallpaper" behavior.
-        }
-    }
+			NativeMethods.ShowWindow(this.Handle, 5);
+			NativeMethods.SetWindowPos(this.Handle, (IntPtr)0, 0, 0, currentScreen.Bounds.Width, currentScreen.Bounds.Height, 0x0040);
+		}
+		else
+		{
+			MessageBox.Show("Debug: Could not find any WorkerW layer.");
+		}
+	}
+
+	public static void StopServer()
+	{
+		sharedServer?.Stop();
+	}
 }

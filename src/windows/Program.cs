@@ -1,18 +1,38 @@
-using System.Runtime.InteropServices;
-
 namespace WaifuPaper;
 
 static class Program
 {
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    static extern bool AllocConsole();
+	private static NotifyIcon? trayIcon;
+	private static List<WaifuPaperWindow> windows = new List<WaifuPaperWindow>();
 
-    [STAThread]
-    static void Main()
-    {
-        AllocConsole();
-        ApplicationConfiguration.Initialize();
-        Application.Run(new WaifuPaperWindow());
-    }
+	[STAThread]
+	static void Main()
+	{
+		ApplicationConfiguration.Initialize();
+
+		foreach (Screen screen in Screen.AllScreens)
+		{
+			WaifuPaperWindow window = new WaifuPaperWindow(screen);
+			window.Show();
+			windows.Add(window);
+		}
+
+		ContextMenuStrip trayMenu = new ContextMenuStrip();
+		trayMenu.Items.Add("Exit WaifuPaper", null, OnExit);
+
+		trayIcon = new NotifyIcon();
+		trayIcon.Text = "WaifuPaper";
+		trayIcon.Icon = SystemIcons.Application;
+		trayIcon.ContextMenuStrip = trayMenu;
+		trayIcon.Visible = true;
+
+		Application.Run();
+	}
+
+	private static void OnExit(object? sender, EventArgs e)
+	{
+		trayIcon!.Visible = false;
+		WaifuPaperWindow.StopServer();
+		Application.Exit();
+	}
 }
