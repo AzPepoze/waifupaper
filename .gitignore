@@ -1,0 +1,25 @@
+# Build artifacts
+/build/
+/release/
+/windows/bin/
+/windows/obj/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node.js / Frontend
+/frontend/node_modules/
+/frontend/dist/
+.npmrc
+
+# System
+.DS_Store
+Thumbs.db
+
+# Dotnet / VS
+.vs/
+*.user
+*.suo
