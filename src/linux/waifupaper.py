@@ -2,18 +2,14 @@ import os
 import sys
 import ctypes
 import subprocess
-import signal
+import gi
 
-# --- Environment Setup ---
 os.environ["GDK_BACKEND"] = "wayland"
 
-# Preload LayerShell
 try:
     ctypes.CDLL("libgtk4-layer-shell.so")
 except OSError:
     pass
-
-import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("WebKit", "6.0")
@@ -26,11 +22,11 @@ except ValueError:
     sys.exit(1)
 
 from gi.repository import Gtk, Gio, WebKit
-
+from constants import APP_ID, PORT
 
 class WaifuPaperApp(Gtk.Application):
     def __init__(self):
-        super().__init__(application_id="com.azpepoze.waifupaper", flags=Gio.ApplicationFlags.FLAGS_NONE)
+        super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
         self.tray_process = None
         self.server_process = None
         self.project_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +73,7 @@ class WaifuPaperApp(Gtk.Application):
         web_view = WebKit.WebView()
         settings = web_view.get_settings()
         settings.set_enable_developer_extras(True)
-        web_view.load_uri("http://localhost:49555/")
+        web_view.load_uri(f"http://localhost:{PORT}/")
         window.set_child(web_view)
 
     def do_shutdown(self):
@@ -85,9 +81,7 @@ class WaifuPaperApp(Gtk.Application):
             self.tray_process.terminate()
         if self.server_process:
             self.server_process.terminate()
-        # Correct way to chain up in PyGObject for some versions
         Gio.Application.do_shutdown(self)
-
 
 if __name__ == "__main__":
     app = WaifuPaperApp()

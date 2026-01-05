@@ -3,11 +3,13 @@ import os
 import signal
 import gi
 
-# Ensure GTK3 is used for AppIndicator (standard compatibility)
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
+from constants import APP_NAME
 
-# Try importing AppIndicator (supports Ayatana or standard AppIndicator3)
+GLib.set_prgname(APP_NAME)
+GLib.set_application_name(APP_NAME)
+
 APP_INDICATOR = None
 try:
     gi.require_version('AyatanaAppIndicator3', '0.1')
@@ -23,27 +25,20 @@ except ValueError:
         sys.exit(1)
 
 def quit_app(source):
-    """
-    Handles the Quit menu action.
-    Kills the parent process (if PID provided) and exits.
-    """
     if len(sys.argv) > 1:
         parent_pid = int(sys.argv[1])
         try:
             os.kill(parent_pid, signal.SIGTERM)
         except ProcessLookupError:
-            pass # Parent already dead
+            pass
     
     Gtk.main_quit()
 
 def build_menu():
-    """Creates the system tray context menu."""
     menu = Gtk.Menu()
-    
-    item_quit = Gtk.MenuItem(label="Quit WaifuPaper")
+    item_quit = Gtk.MenuItem(label=f"Quit {APP_NAME}")
     item_quit.connect('activate', quit_app)
     menu.append(item_quit)
-    
     menu.show_all()
     return menu
 
@@ -53,15 +48,14 @@ def main():
 
     indicator = APP_INDICATOR.Indicator.new(
         "waifupaper-tray",
-        "preferences-desktop-wallpaper", # Fallback system icon
+        "preferences-desktop-wallpaper",
         APP_INDICATOR.IndicatorCategory.APPLICATION_STATUS
     )
     indicator.set_status(APP_INDICATOR.IndicatorStatus.ACTIVE)
     indicator.set_menu(build_menu())
+    indicator.set_label(APP_NAME, "waifupaper")
     
-    # Enable Ctrl+C to kill the tray process gracefully
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    
     Gtk.main()
 
 if __name__ == "__main__":
