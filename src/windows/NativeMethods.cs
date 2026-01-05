@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Drawing;
 
 namespace WaifuPaper;
 
@@ -51,4 +52,55 @@ public static class NativeMethods
 	public const uint SWP_NOSIZE = 0x0001;
 	public const uint SWP_NOMOVE = 0x0002;
 	public const uint SWP_NOACTIVATE = 0x0010;
+
+	//-------------------------------------------------------
+	// Input Forwarding / Hooks
+	//-------------------------------------------------------
+	public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+	[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+	public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+	[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+	[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+	public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+	[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+	public static extern IntPtr GetModuleHandle(string lpModuleName);
+
+	[DllImport("user32.dll")]
+	public static extern IntPtr WindowFromPoint(Point Point);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static extern bool EnumChildWindows(IntPtr hwndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+	[DllImport("user32.dll")]
+	public static extern short GetAsyncKeyState(int vKey);
+
+	public const int WH_MOUSE_LL = 14;
+	public const int WM_LBUTTONDOWN = 0x0201;
+	public const int WM_LBUTTONUP = 0x0202;
+	public const int WM_MOUSEMOVE = 0x0200;
+
+	[StructLayout(LayoutKind.Sequential)]
+	public struct MSLLHOOKSTRUCT
+	{
+		public Point pt;
+		public uint mouseData;
+		public uint flags;
+		public uint time;
+		public IntPtr dwExtraInfo;
+	}
+
+	public static IntPtr MakeLParam(int lo, int hi)
+	{
+		return (IntPtr)((hi << 16) | (lo & 0xFFFF));
+	}
 }
