@@ -14,6 +14,7 @@ except OSError:
     pass
 
 import gi
+
 gi.require_version("Gtk", "4.0")
 gi.require_version("WebKit", "6.0")
 
@@ -25,6 +26,7 @@ except ValueError:
     sys.exit(1)
 
 from gi.repository import Gtk, Gio, WebKit
+
 
 class WaifuPaperApp(Gtk.Application):
     def __init__(self):
@@ -59,12 +61,12 @@ class WaifuPaperApp(Gtk.Application):
     def setup_layershell(self, window):
         LayerShell.init_for_window(window)
         LayerShell.set_layer(window, LayerShell.Layer.BOTTOM)
-        
+
         try:
             LayerShell.set_keyboard_mode(window, LayerShell.KeyboardMode.ON_DEMAND)
         except AttributeError:
             pass
-        
+
         LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
         LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
         LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
@@ -75,7 +77,7 @@ class WaifuPaperApp(Gtk.Application):
         web_view = WebKit.WebView()
         settings = web_view.get_settings()
         settings.set_enable_developer_extras(True)
-        web_view.load_uri("http://localhost:43210/")
+        web_view.load_uri("http://localhost:49555/")
         window.set_child(web_view)
 
     def do_shutdown(self):
@@ -85,6 +87,7 @@ class WaifuPaperApp(Gtk.Application):
             self.server_process.terminate()
         # Correct way to chain up in PyGObject for some versions
         Gio.Application.do_shutdown(self)
+
 
 if __name__ == "__main__":
     app = WaifuPaperApp()

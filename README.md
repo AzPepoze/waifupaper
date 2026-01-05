@@ -1,22 +1,12 @@
+# 🌸 WaifuPaper 🌸
+
 <p align="center">
-  <h1 align="center">🌸 WaifuPaper 🌸</h1>
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" />
 </p>
 
 A modern, cross-platform live wallpaper application that displays random high-quality anime wallpapers from Konachan directly on your desktop.
 
-## Preview
-
 ![Preview](showcase/screen1.png)
-
-## Contents
-
--    [Features](#features)
--    [Installation &amp; Usage](#installation--usage)
-     -    [Linux](#linux-wayland)
-     -    [Windows](#windows)
--    [Development &amp; Building](#development--building)
--    [Acknowledgments](#acknowledgments)
 
 ## Features
 
@@ -25,65 +15,75 @@ A modern, cross-platform live wallpaper application that displays random high-qu
 -    **System Tray:** Minimal footprint with a system tray icon for easy exit.
 -    **Lightweight:** Low resource usage, serving content via a local embedded proxy.
 
-## Installation & Usage
-
-### Linux (Wayland)
+# Linux (Wayland)
 
 Requires `GTK4`, `WebKitGTK`, and `gtk4-layer-shell`. These dependencies must be installed via your system's package manager.
 
 **Example (Arch Linux):**
 
 ```bash
-
 sudo pacman -S gtk4 webkitgtk-6.0 gtk4-layer-shell libayatana-appindicator python-gobject
-
 ```
 
-_Note: For other distributions, please find the equivalent packages (e.g., `libgtk-4-dev`, `libwebkit2gtk-4.1-dev` on Debian/Ubuntu)._
-
-1. Download the latest `waifupaper_v*_linux.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
+1. Download the latest `linux.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
 2. Extract the archive.
 3. Run the launcher:
      ```bash
      ./waifupaper.sh
      ```
 
-### Windows
+# Windows
 
-1. Download the latest `waifupaper_v*_windows.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
-2. Extract and run `WaifuPaper.exe`.
+**Requirement:** [.NET 8.0 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) must be installed.
 
-## Prerequisites (Windows Build)
+1. Download the latest `windows.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
+2. Extract the archive.
+3. Run `waifupaper.exe`.
 
-To build this project on Windows, you need to install the following:
+# Wallpaper Engine
 
-- **[Node.js](https://nodejs.org/en/download/prebuilt-installer)**
-- **[pnpm](https://pnpm.io/installation)**
-- **[Python 3](https://www.python.org/downloads/windows/)** (Make sure to check "Add Python to PATH" during installation)
+If you prefer to use **Wallpaper Engine** instead of the built-in desktop overlay:
+1. Ensure `waifupaper-server.exe` is running (you can run `waifupaper.exe` once, or run the server standalone).
+2. In Wallpaper Engine, click on **"Open Wallpaper"** at the bottom left.
+3. Select **"Open from URL"**.
+4. Enter the following URL: `http://localhost:49555/`.
+
+# Development
+
+## Prerequisites
+
+To build this project, you need:
+
+- **[Node.js](https://nodejs.org/en/download)** & **[pnpm](https://pnpm.io/)**
+- **[Python 3](https://www.python.org/)**
 - **[.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)**
 
 ## Build Instructions
 
-Run the build script from the project root:
+Run the parallel build script from the project root:
 
-```powershell
+```bash
 python build.py
 ```
 
-The output will be located in the `release/` folder.
+- **`dist/`**: Contains unzipped ready-to-run folders.
+- **`release/`**: Contains compressed `.zip` archives.
 
-## Development
+## Run in developing mode
 
 1. **Install Python Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Run Auto-Dev System**:
+2. **Launch the Auto-Dev System**:
    ```bash
    python dev.py
    ```
 
-## Acknowledgments
+# Special Thanks & Appreciation
 
--    Wallpapers provided by [Konachan](https://konachan.net).
+We would like to express our gratitude to the following services and communities:
+
+- **[Konachan](https://konachan.net)**: For providing an amazing collection of high-quality anime wallpapers.
+- All the open-source contributors whose libraries made this project possible.
