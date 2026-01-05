@@ -28,26 +28,12 @@ static class Program
 		ApplicationConfiguration.Initialize();
 
 		string baseDir = AppContext.BaseDirectory;
-		string serverExe = Path.Combine(baseDir, "browser-as-wallpaper-server.exe");
 		string webviewExe = Path.Combine(baseDir, "browser-as-wallpaper-webview.exe");
 
-		// 1. Start Server with --no-tray
-		if (!IsServerRunning(Constants.ServerUrl))
-		{
-			StartProcess(serverExe, "--no-tray");
-			
-			int attempts = 0;
-			while (!IsServerRunning(Constants.ServerUrl) && attempts < 50)
-			{
-				Thread.Sleep(100);
-				attempts++;
-			}
-		}
-
-		// 2. Start WebView with --no-tray
+		// 1. Start WebView with --no-tray
 		StartProcess(webviewExe, "--no-tray");
 
-		// 3. Create Main Tray
+		// 2. Create Main Tray
 		trayIcon = Tray.CreateTray("BrowserAsWallpaper", OnExit);
 
 		Application.Run();
@@ -76,23 +62,8 @@ static class Program
 		}
 
 		// Also try to find and kill by name just in case
-		foreach (var proc in Process.GetProcessesByName("browser-as-wallpaper-server")) try { proc.Kill(); } catch { }
 		foreach (var proc in Process.GetProcessesByName("browser-as-wallpaper-webview")) try { proc.Kill(); } catch { }
 
 		Application.Exit();
-	}
-
-	private static bool IsServerRunning(string url)
-	{
-		try
-		{
-			using (var client = new System.Net.Http.HttpClient())
-			{
-				client.Timeout = TimeSpan.FromMilliseconds(200);
-				var response = client.GetAsync(url).Result;
-				return response.IsSuccessStatusCode;
-			}
-		}
-		catch { return false; }
 	}
 }

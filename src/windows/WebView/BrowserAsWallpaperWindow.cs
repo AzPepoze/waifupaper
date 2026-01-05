@@ -93,7 +93,7 @@ public class BrowserAsWallpaperWindow : Form
 			webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
 			webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
 
-			string url = Constants.ServerUrl;
+			string url = Constants.DefaultUrl;
 			Console.WriteLine($"[WebView] Navigating to: {url}");
 			webView.CoreWebView2.Navigate(url);
 

@@ -22,17 +22,15 @@ except ValueError:
     sys.exit(1)
 
 from gi.repository import Gtk, Gio, WebKit
-from constants import APP_ID, PORT
+from constants import APP_ID, DEFAULT_URL
 
 class BrowserAsWallpaperApp(Gtk.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
         self.tray_process = None
-        self.server_process = None
         self.project_dir = os.path.dirname(os.path.abspath(__file__))
 
     def do_activate(self):
-        self.start_service("server.py")
         self.start_service("tray.py", str(os.getpid()))
 
         window = Gtk.Window(application=self)
@@ -49,8 +47,6 @@ class BrowserAsWallpaperApp(Gtk.Application):
             proc = subprocess.Popen(cmd)
             if script_name == "tray.py":
                 self.tray_process = proc
-            elif script_name == "server.py":
-                self.server_process = proc
         except Exception as e:
             print(f"Error starting {script_name}: {e}")
 
@@ -73,14 +69,12 @@ class BrowserAsWallpaperApp(Gtk.Application):
         web_view = WebKit.WebView()
         settings = web_view.get_settings()
         settings.set_enable_developer_extras(True)
-        web_view.load_uri(f"http://localhost:{PORT}/")
+        web_view.load_uri(DEFAULT_URL)
         window.set_child(web_view)
 
     def do_shutdown(self):
         if self.tray_process:
             self.tray_process.terminate()
-        if self.server_process:
-            self.server_process.terminate()
         Gio.Application.do_shutdown(self)
 
 if __name__ == "__main__":
