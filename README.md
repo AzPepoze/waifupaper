@@ -25,26 +25,24 @@ A modern, cross-platform live wallpaper application that displays random high-qu
 ## Installation & Usage
 
 ### Linux (Wayland)
-
 Requires `GTK4`, `WebKitGTK`, and `gtk4-layer-shell`.
 
 **Arch Linux:**
-
 ```bash
 sudo pacman -S gtk4 webkitgtk-6.0 gtk4-layer-shell libayatana-appindicator python-gobject
 ```
 
-1. Download the `linux.zip` from the Releases page.
+1. Download the [linux.zip](https://github.com/AzPepoze/waifupaper/releases/latest/download/linux.zip).
 2. Extract the archive.
 3. Run the launcher:
-     ```bash
-     ./waifupaper.sh
-     ```
+   ```bash
+   ./waifupaper.sh
+   ```
 
 ### Windows
-
-1. Download the `windows.zip` from the Releases page.
+1. Download the [windows.zip](https://github.com/AzPepoze/waifupaper/releases/latest/download/windows.zip).
 2. Extract and run `WaifuPaper.exe`.
+   - *Note: On the first run, it may prompt to install the WebView2 Runtime if not present.*
 
 ## Development & Building
 
