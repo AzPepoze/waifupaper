@@ -4,6 +4,9 @@ namespace WaifuPaper;
 
 public static class NativeMethods
 {
+	[DllImport("kernel32.dll")]
+	public static extern bool AttachConsole(int dwProcessId);
+
 	[DllImport("user32.dll", SetLastError = true)]
 	public static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
 

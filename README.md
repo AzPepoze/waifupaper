@@ -72,6 +72,18 @@ python build.py
 
 The output will be located in the `release/` folder.
 
+## Development
+
+1. **Install Python Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run Auto-Dev System**:
+   ```bash
+   python dev.py
+   ```
+
 ## Acknowledgments
 
 -    Wallpapers provided by [Konachan](https://konachan.net).

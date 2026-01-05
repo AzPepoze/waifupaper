@@ -57,16 +57,18 @@ def build_windows(src_dir, build_dir):
     run_command(cmd)
     return win_publish_path
 
-def pack_windows(win_publish_path, dist_dir, release_dir):
-    print("\n[Windows] Packaging...")
+def pack_windows(win_publish_path, dist_dir, release_dir, skip_zip=False):
+    print("\n[Windows] Preparing assets...")
     win_frontend_dist_dst = os.path.join(win_publish_path, "frontend", "dist")
     if os.path.exists(win_frontend_dist_dst):
         shutil.rmtree(win_frontend_dist_dst)
     shutil.copytree(dist_dir, win_frontend_dist_dst)
 
-    win_zip_path = os.path.join(release_dir, "windows")
-    shutil.make_archive(win_zip_path, 'zip', win_publish_path)
-    print(f"Windows Zip created: {win_zip_path}.zip")
+    if not skip_zip:
+        print("[Windows] Creating zip...")
+        win_zip_path = os.path.join(release_dir, "windows")
+        shutil.make_archive(win_zip_path, 'zip', win_publish_path)
+        print(f"Windows Zip created: {win_zip_path}.zip")
 
 def build_linux(src_dir, build_dir):
     print("\n[Linux] Preparing Build...")
@@ -85,16 +87,18 @@ def build_linux(src_dir, build_dir):
             shutil.copy2(s, d)
     return linux_pkg_dir
 
-def pack_linux(linux_pkg_dir, dist_dir, release_dir):
-    print("\n[Linux] Packaging...")
+def pack_linux(linux_pkg_dir, dist_dir, release_dir, skip_zip=False):
+    print("\n[Linux] Preparing assets...")
     frontend_dist_dst = os.path.join(linux_pkg_dir, "frontend", "dist")
     if os.path.exists(frontend_dist_dst):
         shutil.rmtree(frontend_dist_dst)
     shutil.copytree(dist_dir, frontend_dist_dst)
 
-    linux_zip_path = os.path.join(release_dir, "linux")
-    shutil.make_archive(linux_zip_path, 'zip', linux_pkg_dir)
-    print(f"Linux Zip created: {linux_zip_path}.zip")
+    if not skip_zip:
+        print("[Linux] Creating zip...")
+        linux_zip_path = os.path.join(release_dir, "linux")
+        shutil.make_archive(linux_zip_path, 'zip', linux_pkg_dir)
+        print(f"Linux Zip created: {linux_zip_path}.zip")
 
 def main():
     project_root = os.path.dirname(os.path.abspath(__file__))
@@ -102,6 +106,8 @@ def main():
     release_dir = os.path.join(project_root, "release")
     build_dir = os.path.join(project_root, "build")
     
+    no_pack = "--no-pack" in sys.argv
+
     if os.path.exists(release_dir):
         shutil.rmtree(release_dir)
     os.makedirs(release_dir)
@@ -118,14 +124,14 @@ def main():
     try:
         # We can build Windows on any platform with .NET SDK installed
         win_publish_path = build_windows(src_dir, build_dir)
-        pack_windows(win_publish_path, dist_dir, release_dir)
+        pack_windows(win_publish_path, dist_dir, release_dir, skip_zip=no_pack)
     except Exception as e:
         print(f"Windows build/pack skipped or failed: {e}")
 
     # 4. Handle Linux Build/Pack
     try:
         linux_pkg_dir = build_linux(src_dir, build_dir)
-        pack_linux(linux_pkg_dir, dist_dir, release_dir)
+        pack_linux(linux_pkg_dir, dist_dir, release_dir, skip_zip=no_pack)
     except Exception as e:
         print(f"Linux build/pack skipped or failed: {e}")
 

@@ -41,21 +41,12 @@ public class WaifuPaperWindow : Form
 		InitializeWebViewAsync();
 	}
 
+	protected override bool ShowWithoutActivation => true;
+
 	protected override async void OnLoad(EventArgs e)
 	{
 		base.OnLoad(e);
-		await Task.Delay(1000);
 		PinToDesktop();
-	}
-
-	protected override CreateParams CreateParams
-	{
-		get
-		{
-			CreateParams cp = base.CreateParams;
-			cp.ExStyle |= 0x80 | 0x08000000;
-			return cp;
-		}
 	}
 
 	private async void InitializeWebViewAsync()
@@ -73,66 +64,34 @@ public class WaifuPaperWindow : Form
 	private void PinToDesktop()
 	{
 		IntPtr progman = NativeMethods.FindWindow("Progman", null);
-		if (progman == IntPtr.Zero)
-		{
-			MessageBox.Show("Debug: Progman not found");
-			return;
-		}
+		if (progman == IntPtr.Zero) return;
 
+		// Trigger the creation of WorkerW
 		NativeMethods.SendMessageTimeout(progman, 0x052C, new IntPtr(0), IntPtr.Zero, 0x0000, 1000, out _);
 
 		IntPtr workerW = IntPtr.Zero;
-		IntPtr shellDll = IntPtr.Zero;
+		IntPtr child = IntPtr.Zero;
 
-		NativeMethods.EnumWindows((tophandle, topparamhandle) =>
+		// Find the WorkerW child of Progman
+		do
 		{
-			IntPtr foundShell = NativeMethods.FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null);
-			if (foundShell != IntPtr.Zero)
+			child = NativeMethods.FindWindowEx(progman, child, "WorkerW", null);
+			if (child != IntPtr.Zero)
 			{
-				shellDll = foundShell;
-				workerW = NativeMethods.FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null);
+				workerW = child;
+				break;
 			}
-			return true;
-		}, IntPtr.Zero);
-
-		if (workerW == IntPtr.Zero)
-		{
-			NativeMethods.EnumWindows((tophandle, topparamhandle) =>
-			{
-				StringBuilder className = new StringBuilder(256);
-				NativeMethods.GetClassName(tophandle, className, className.Capacity);
-				if (className.ToString() == "WorkerW")
-				{
-					IntPtr foundShell = NativeMethods.FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null);
-					if (foundShell == IntPtr.Zero)
-					{
-						workerW = tophandle;
-					}
-				}
-				return true;
-			}, IntPtr.Zero);
-		}
+		} while (child != IntPtr.Zero);
 
 		if (workerW != IntPtr.Zero)
 		{
-			MessageBox.Show($"Debug: Found WorkerW {workerW}. Parenting window...");
-			
+			Console.WriteLine($"[Debug] Parenting to WorkerW: 0x{workerW.ToInt64():X}");
 			NativeMethods.SetParent(this.Handle, workerW);
-			
-			int style = NativeMethods.GetWindowLong(this.Handle, NativeMethods.GWL_STYLE);
-			style |= NativeMethods.WS_CHILD;
-			style &= ~NativeMethods.WS_POPUP;
-			NativeMethods.SetWindowLong(this.Handle, NativeMethods.GWL_STYLE, style);
 
 			this.Location = new Point(0, 0);
 			this.Size = currentScreen.Bounds.Size;
 
-			NativeMethods.ShowWindow(this.Handle, 5);
-			NativeMethods.SetWindowPos(this.Handle, (IntPtr)0, 0, 0, currentScreen.Bounds.Width, currentScreen.Bounds.Height, 0x0040);
-		}
-		else
-		{
-			MessageBox.Show("Debug: Could not find any WorkerW layer.");
+			NativeMethods.SetWindowPos(this.Handle, NativeMethods.HWND_BOTTOM, 0, 0, currentScreen.Bounds.Width, currentScreen.Bounds.Height, 0x0040 | 0x0010);
 		}
 	}
 

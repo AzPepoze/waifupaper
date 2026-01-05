@@ -8,6 +8,9 @@ static class Program
 	[STAThread]
 	static void Main()
 	{
+		// Try to attach to the parent process's console (terminal)
+		NativeMethods.AttachConsole(-1);
+
 		ApplicationConfiguration.Initialize();
 
 		foreach (Screen screen in Screen.AllScreens)
