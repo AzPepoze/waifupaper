@@ -10,15 +10,6 @@ def run_command(cmd, cwd=None):
         print(f"Error executing {cmd}: {e}")
         sys.exit(1)
 
-def install_python_deps(src_dir):
-    print("\n[Python] Checking dependencies...")
-    if sys.platform == "linux":
-        linux_req_file = os.path.join(src_dir, "linux", "requirements.txt")
-        if os.path.exists(linux_req_file):
-            run_command([sys.executable, "-m", "pip", "install", "-r", linux_req_file])
-    else:
-        print("Skipping Python dependencies installation (not on Linux).")
-
 def build_frontend(src_dir):
     print("\n[Frontend] Building Svelte App...")
     frontend_dir = os.path.join(src_dir, "frontend")
@@ -114,21 +105,17 @@ def main():
 
     print("--- WaifuPaper Build System ---")
 
-    # 1. Setup Dependencies
-    install_python_deps(src_dir)
-
-    # 2. Build Frontend (Shared)
+    # 1. Build Frontend (Shared)
     dist_dir = build_frontend(src_dir)
 
-    # 3. Handle Windows Build/Pack
+    # 2. Handle Windows Build/Pack
     try:
-        # We can build Windows on any platform with .NET SDK installed
         win_publish_path = build_windows(src_dir, build_dir)
         pack_windows(win_publish_path, dist_dir, release_dir, skip_zip=no_pack)
     except Exception as e:
         print(f"Windows build/pack skipped or failed: {e}")
 
-    # 4. Handle Linux Build/Pack
+    # 3. Handle Linux Build/Pack
     try:
         linux_pkg_dir = build_linux(src_dir, build_dir)
         pack_linux(linux_pkg_dir, dist_dir, release_dir, skip_zip=no_pack)
