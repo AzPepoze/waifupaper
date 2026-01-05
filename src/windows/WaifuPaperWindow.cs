@@ -12,6 +12,7 @@ public class WaifuPaperWindow : Form
 	private static EmbeddedServer? sharedServer;
 	private static readonly object serverLock = new object();
 	private static readonly HttpClient httpClient = new HttpClient();
+
 	private WebView2 webView;
 	private Screen currentScreen;
 
@@ -25,6 +26,7 @@ public class WaifuPaperWindow : Form
 	public WaifuPaperWindow(Screen screen)
 	{
 		this.currentScreen = screen;
+		Console.WriteLine($"[Window] Initializing for screen: {screen.DeviceName} (Bounds: {screen.Bounds})");
 
 		this.FormBorderStyle = FormBorderStyle.None;
 		this.WindowState = FormWindowState.Normal;
@@ -39,44 +41,15 @@ public class WaifuPaperWindow : Form
 			InitializeServerAsync();
 		}
 
-		webView = new WebView2();
-		webView.Dock = DockStyle.Fill;
-		webView.DefaultBackgroundColor = Color.Black;
-		this.Controls.Add(webView);
-
-		InitializeWebViewAsync();
+		webView = null!;
 
 		//-------------------------------------------------------
 		// Initialize Input Hook
 		//-------------------------------------------------------
+		Console.WriteLine("[Input] Setting up low-level mouse hook...");
 		_proc = HookCallback;
 		_mouseHookID = SetHook(_proc);
-	}
-
-	private async void InitializeServerAsync()
-	{
-		const string url = "http://127.0.0.1:43210/";
-		bool serverExists = false;
-
-		try
-		{
-			var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
-			var response = await httpClient.GetAsync(url, cts.Token);
-			serverExists = true;
-		}
-		catch { }
-
-		if (!serverExists)
-		{
-			lock (serverLock)
-			{
-				if (sharedServer == null)
-				{
-					sharedServer = new EmbeddedServer(url);
-					Task.Run(() => sharedServer.Start());
-				}
-			}
-		}
+		Console.WriteLine($"[Input] Hook set. ID: 0x{_mouseHookID.ToInt64():X}");
 	}
 
 	protected override bool ShowWithoutActivation => true;
@@ -87,47 +60,74 @@ public class WaifuPaperWindow : Form
 		{
 			CreateParams cp = base.CreateParams;
 			cp.ExStyle |= NativeMethods.WS_EX_TOOLWINDOW; // Hide from Alt-Tab/Win-Tab
+			cp.ExStyle |= NativeMethods.WS_EX_NOACTIVATE; // Prevent activation
 			return cp;
 		}
 	}
 
 	protected override void OnFormClosing(FormClosingEventArgs e)
 	{
-		_chromeRenderWidgetHostHWND = IntPtr.Zero; // Prevent further hook processing
-		NativeMethods.UnhookWindowsHookEx(_mouseHookID);
+		Console.WriteLine("[Window] Form closing. Cleaning up...");
+		_chromeRenderWidgetHostHWND = IntPtr.Zero;
+		if (_mouseHookID != IntPtr.Zero)
+		{
+			NativeMethods.UnhookWindowsHookEx(_mouseHookID);
+			Console.WriteLine("[Input] Mouse hook unhooked.");
+		}
 		base.OnFormClosing(e);
 	}
 
-	protected override async void OnLoad(EventArgs e)
+	protected override void OnLoad(EventArgs e)
 	{
 		base.OnLoad(e);
-		PinToDesktop();
+		InitializeWebViewAsync();
 	}
 
 	private async void InitializeWebViewAsync()
 	{
 		try
 		{
+			if (this.IsDisposed) return;
+
+			Console.WriteLine("[WebView] Creating WebView2 control...");
+			webView = new WebView2();
+			webView.Dock = DockStyle.Fill;
+			webView.DefaultBackgroundColor = Color.Black;
+			this.Controls.Add(webView);
+
+			Console.WriteLine("[WebView] Starting CoreWebView2 initialization...");
 			await webView.EnsureCoreWebView2Async();
 
-			if (webView == null || webView.IsDisposed || webView.CoreWebView2 == null) return;
+			if (webView == null || webView.IsDisposed || webView.CoreWebView2 == null)
+			{
+				Console.WriteLine("[WebView] Initialization aborted: WebView is disposed or null.");
+				return;
+			}
 
+			Console.WriteLine("[WebView] CoreWebView2 initialized successfully.");
 			webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
 			webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
-			webView.CoreWebView2.Navigate("http://127.0.0.1:43210/");
+
+			const string url = "http://127.0.0.1:43210/";
+			Console.WriteLine($"[WebView] Navigating to: {url}");
+			webView.CoreWebView2.Navigate(url);
 
 			FindChromeWindow();
+			PinToDesktop();
 		}
-		catch (ObjectDisposedException) { }
-		catch (Exception) { }
+		catch (Exception ex)
+		{
+			Console.WriteLine($"[WebView] Unexpected error: {ex.Message}");
+			if (ex.InnerException != null)
+			{
+				Console.WriteLine($"[WebView] Inner error: {ex.InnerException.Message}");
+			}
+		}
 	}
 
-	//-------------------------------------------------------
-	// Input Forwarding Logic
-	//-------------------------------------------------------
 	private void FindChromeWindow()
 	{
-		if (webView == null || webView.IsDisposed) return;
+		if (webView == null || webView.IsDisposed || !webView.IsHandleCreated) return;
 		try
 		{
 			NativeMethods.EnumChildWindows(this.webView.Handle, (hWnd, lParam) =>
@@ -137,6 +137,7 @@ public class WaifuPaperWindow : Form
 				if (sb.ToString() == "Chrome_RenderWidgetHostHWND")
 				{
 					_chromeRenderWidgetHostHWND = hWnd;
+					Console.WriteLine($"[WebView] Found Chrome window: 0x{_chromeRenderWidgetHostHWND.ToInt64():X}");
 					return false;
 				}
 				return true;
@@ -208,6 +209,33 @@ public class WaifuPaperWindow : Form
 		return NativeMethods.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
 	}
 
+	private async void InitializeServerAsync()
+	{
+		const string url = "http://127.0.0.1:43210/";
+		bool serverExists = false;
+
+		try
+		{
+			var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+			var response = await httpClient.GetAsync(url, cts.Token);
+			serverExists = true;
+			Console.WriteLine("[Server] Existing server detected.");
+		}
+		catch { }
+
+		if (!serverExists)
+		{
+			lock (serverLock)
+			{
+				if (sharedServer == null)
+				{
+					sharedServer = new EmbeddedServer(url);
+					Task.Run(() => sharedServer.Start());
+				}
+			}
+		}
+	}
+
 	private void PinToDesktop()
 	{
 		IntPtr progman = NativeMethods.FindWindow("Progman", null);
@@ -219,8 +247,6 @@ public class WaifuPaperWindow : Form
 
 		if (Environment.OSVersion.Version.Build >= 22000)
 		{
-			Console.WriteLine("[Debug] Windows 11 detected. Finding WorkerW as child of Progman...");
-			// Windows 11: use the current method to get the workerW (as a child of Progman)
 			IntPtr child = IntPtr.Zero;
 			do
 			{
@@ -228,22 +254,18 @@ public class WaifuPaperWindow : Form
 				if (child != IntPtr.Zero)
 				{
 					workerW = child;
-					Console.WriteLine($"[Debug] Found WorkerW child: 0x{workerW.ToInt64():X}");
 					break;
 				}
 			} while (child != IntPtr.Zero);
 		}
 		else
 		{
-			Console.WriteLine("[Debug] Windows 10 detected. Using EnumWindows to find WorkerW...");
-			// Windows 10: Use EnumWindows to find the correct WorkerW that is next to the one containing SHELLDLL_DefView
 			IntPtr resultWorkerW = IntPtr.Zero;
 			NativeMethods.EnumWindows((toplevelHandle, param) =>
 			{
 				IntPtr shellView = NativeMethods.FindWindowEx(toplevelHandle, IntPtr.Zero, "SHELLDLL_DefView", null);
 				if (shellView != IntPtr.Zero)
 				{
-					Console.WriteLine($"[Debug] Found SHELLDLL_DefView in: 0x{toplevelHandle.ToInt64():X}");
 					resultWorkerW = NativeMethods.FindWindowEx(IntPtr.Zero, toplevelHandle, "WorkerW", null);
 				}
 				return true;
@@ -253,8 +275,13 @@ public class WaifuPaperWindow : Form
 
 		if (workerW != IntPtr.Zero)
 		{
-			Console.WriteLine($"[Debug] Success! Final WorkerW: 0x{workerW.ToInt64():X}");
+			Console.WriteLine($"[Debug] Pinning to WorkerW: 0x{workerW.ToInt64():X}");
 			NativeMethods.SetParent(this.Handle, workerW);
+
+			int style = NativeMethods.GetWindowLong(this.Handle, NativeMethods.GWL_STYLE);
+			style |= NativeMethods.WS_CHILD;
+			style &= ~NativeMethods.WS_POPUP;
+			NativeMethods.SetWindowLong(this.Handle, NativeMethods.GWL_STYLE, style);
 
 			this.Location = new Point(0, 0);
 			this.Size = currentScreen.Bounds.Size;

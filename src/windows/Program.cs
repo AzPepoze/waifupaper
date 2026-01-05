@@ -6,11 +6,23 @@ static class Program
 	private static List<WaifuPaperWindow> windows = new List<WaifuPaperWindow>();
 
 	[STAThread]
-	static void Main()
+	static void Main(string[] args)
 	{
+		// Redirect console output to a file
+		try
+		{
+			string logPath = Path.Combine(AppContext.BaseDirectory, "debug.log");
+			var fileStream = new FileStream(logPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+			var writer = new StreamWriter(fileStream) { AutoFlush = true };
+			Console.SetOut(writer);
+			Console.SetError(writer);
+		}
+		catch { }
+
 		// Try to attach to the parent process's console (terminal)
 		NativeMethods.AttachConsole(-1);
 
+		Console.WriteLine($"--- WaifuPaper Started at {DateTime.Now} ---");
 		ApplicationConfiguration.Initialize();
 
 		foreach (Screen screen in Screen.AllScreens)
