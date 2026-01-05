@@ -1,6 +1,5 @@
-# 🌸 WaifuPaper 🌸
-
 <p align="center">
+  <h1 align="center">🌸 WaifuPaper 🌸</h1>
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" />
 </p>
 
@@ -43,6 +42,7 @@ sudo pacman -S gtk4 webkitgtk-6.0 gtk4-layer-shell libayatana-appindicator pytho
 # Wallpaper Engine
 
 If you prefer to use **Wallpaper Engine** instead of the built-in desktop overlay:
+
 1. Ensure `waifupaper-server.exe` is running (you can run `waifupaper.exe` once, or run the server standalone).
 2. In Wallpaper Engine, click on **"Open Wallpaper"** at the bottom left.
 3. Select **"Open from URL"**.
@@ -54,9 +54,9 @@ If you prefer to use **Wallpaper Engine** instead of the built-in desktop overla
 
 To build this project, you need:
 
-- **[Node.js](https://nodejs.org/en/download)** & **[pnpm](https://pnpm.io/)**
-- **[Python 3](https://www.python.org/)**
-- **[.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)**
+-    **[Node.js](https://nodejs.org/en/download)** & **[pnpm](https://pnpm.io/)**
+-    **[Python 3](https://www.python.org/)**
+-    **[.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)**
 
 ## Build Instructions
 
@@ -66,24 +66,25 @@ Run the parallel build script from the project root:
 python build.py
 ```
 
-- **`dist/`**: Contains unzipped ready-to-run folders.
-- **`release/`**: Contains compressed `.zip` archives.
+-    **`dist/`**: Contains unzipped ready-to-run folders.
+-    **`release/`**: Contains compressed `.zip` archives.
 
 ## Run in developing mode
 
 1. **Install Python Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+     ```bash
+     pip install -r requirements.txt
+     ```
 
 2. **Launch the Auto-Dev System**:
-   ```bash
-   python dev.py
-   ```
+     ```bash
+     python dev.py
+     ```
 
 # Special Thanks & Appreciation
 
 We would like to express our gratitude to the following services and communities:
 
-- **[Konachan](https://konachan.net)**: For providing an amazing collection of high-quality anime wallpapers.
-- All the open-source contributors whose libraries made this project possible.
+-    **[Konachan](https://konachan.net)**: For providing an amazing collection of high-quality anime wallpapers.
+-    All the open-source contributors whose libraries made this project possible.
