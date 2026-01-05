@@ -10,6 +10,7 @@ public class EmbeddedServer
 	private HttpListener listener;
 	private string url;
 	private HttpClient httpClient = new HttpClient();
+	public bool IsRunning { get; private set; }
 
 	public EmbeddedServer(string url)
 	{
@@ -31,6 +32,7 @@ public class EmbeddedServer
 			}
 
 			listener.Start();
+			IsRunning = true;
 			while (listener.IsListening)
 			{
 				var context = listener.GetContext();
@@ -39,6 +41,7 @@ public class EmbeddedServer
 		}
 		catch (Exception ex)
 		{
+			IsRunning = false;
 			MessageBox.Show($"Server failed to start: {ex.Message}", "WaifuPaper Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 	}
@@ -52,8 +55,9 @@ public class EmbeddedServer
 				listener.Stop();
 				listener.Close();
 			}
+			IsRunning = false;
 		}
-		catch { }
+		catch { IsRunning = false; }
 	}
 
 	private async void ProcessRequest(HttpListenerContext context)

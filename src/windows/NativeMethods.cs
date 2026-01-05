@@ -45,8 +45,12 @@ public static class NativeMethods
 	public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
 	public const int GWL_STYLE = -16;
+	public const int GWL_EXSTYLE = -20;
 	public const int WS_CHILD = 0x40000000;
 	public const int WS_POPUP = unchecked((int)0x80000000);
+	public const int WS_EX_TOOLWINDOW = 0x00000080;
+	public const int WS_EX_APPWINDOW = 0x00040000;
+	public const int WS_EX_NOACTIVATE = 0x08000000;
 
 	public static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
 	public const uint SWP_NOSIZE = 0x0001;
