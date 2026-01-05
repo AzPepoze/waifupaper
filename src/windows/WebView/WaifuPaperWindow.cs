@@ -9,18 +9,11 @@ namespace WaifuPaper;
 
 public class WaifuPaperWindow : Form
 {
-	private static EmbeddedServer? sharedServer;
-	private static readonly object serverLock = new object();
-	private static readonly HttpClient httpClient = new HttpClient();
-
 	private WebView2 webView;
 	private Screen currentScreen;
 
-	//-------------------------------------------------------
-	// Input Forwarding Fields
-	//-------------------------------------------------------
 	private IntPtr _mouseHookID = IntPtr.Zero;
-	private NativeMethods.LowLevelMouseProc _proc;
+	private Lib.LowLevelMouseProc _proc;
 	private IntPtr _chromeRenderWidgetHostHWND = IntPtr.Zero;
 
 	public WaifuPaperWindow(Screen screen)
@@ -36,16 +29,8 @@ public class WaifuPaperWindow : Form
 		this.Location = screen.Bounds.Location;
 		this.Size = screen.Bounds.Size;
 
-		lock (serverLock)
-		{
-			InitializeServerAsync();
-		}
-
 		webView = null!;
 
-		//-------------------------------------------------------
-		// Initialize Input Hook
-		//-------------------------------------------------------
 		Console.WriteLine("[Input] Setting up low-level mouse hook...");
 		_proc = HookCallback;
 		_mouseHookID = SetHook(_proc);
@@ -59,8 +44,8 @@ public class WaifuPaperWindow : Form
 		get
 		{
 			CreateParams cp = base.CreateParams;
-			cp.ExStyle |= NativeMethods.WS_EX_TOOLWINDOW; // Hide from Alt-Tab/Win-Tab
-			cp.ExStyle |= NativeMethods.WS_EX_NOACTIVATE; // Prevent activation
+			cp.ExStyle |= Lib.WS_EX_TOOLWINDOW;
+			cp.ExStyle |= Lib.WS_EX_NOACTIVATE;
 			return cp;
 		}
 	}
@@ -71,7 +56,7 @@ public class WaifuPaperWindow : Form
 		_chromeRenderWidgetHostHWND = IntPtr.Zero;
 		if (_mouseHookID != IntPtr.Zero)
 		{
-			NativeMethods.UnhookWindowsHookEx(_mouseHookID);
+			Lib.UnhookWindowsHookEx(_mouseHookID);
 			Console.WriteLine("[Input] Mouse hook unhooked.");
 		}
 		base.OnFormClosing(e);
@@ -108,7 +93,7 @@ public class WaifuPaperWindow : Form
 			webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
 			webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
 
-			const string url = "http://127.0.0.1:43210/";
+			string url = Constants.ServerUrl;
 			Console.WriteLine($"[WebView] Navigating to: {url}");
 			webView.CoreWebView2.Navigate(url);
 
@@ -118,10 +103,6 @@ public class WaifuPaperWindow : Form
 		catch (Exception ex)
 		{
 			Console.WriteLine($"[WebView] Unexpected error: {ex.Message}");
-			if (ex.InnerException != null)
-			{
-				Console.WriteLine($"[WebView] Inner error: {ex.InnerException.Message}");
-			}
 		}
 	}
 
@@ -130,10 +111,10 @@ public class WaifuPaperWindow : Form
 		if (webView == null || webView.IsDisposed || !webView.IsHandleCreated) return;
 		try
 		{
-			NativeMethods.EnumChildWindows(this.webView.Handle, (hWnd, lParam) =>
+			Lib.EnumChildWindows(this.webView.Handle, (hWnd, lParam) =>
 			{
 				StringBuilder sb = new StringBuilder(256);
-				NativeMethods.GetClassName(hWnd, sb, sb.Capacity);
+				Lib.GetClassName(hWnd, sb, sb.Capacity);
 				if (sb.ToString() == "Chrome_RenderWidgetHostHWND")
 				{
 					_chromeRenderWidgetHostHWND = hWnd;
@@ -146,13 +127,13 @@ public class WaifuPaperWindow : Form
 		catch { }
 	}
 
-	private IntPtr SetHook(NativeMethods.LowLevelMouseProc proc)
+	private IntPtr SetHook(Lib.LowLevelMouseProc proc)
 	{
 		using (Process curProcess = Process.GetCurrentProcess())
 		using (ProcessModule curModule = curProcess.MainModule!)
 		{
-			return NativeMethods.SetWindowsHookEx(NativeMethods.WH_MOUSE_LL, proc,
-				NativeMethods.GetModuleHandle(curModule.ModuleName), 0);
+			return Lib.SetWindowsHookEx(Lib.WH_MOUSE_LL, proc,
+				Lib.GetModuleHandle(curModule.ModuleName), 0);
 		}
 	}
 
@@ -162,112 +143,62 @@ public class WaifuPaperWindow : Form
 		{
 			try
 			{
-				NativeMethods.MSLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<NativeMethods.MSLLHOOKSTRUCT>(lParam);
+				Lib.MSLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<Lib.MSLLHOOKSTRUCT>(lParam);
 
-				IntPtr windowUnderMouse = NativeMethods.WindowFromPoint(hookStruct.pt);
+				IntPtr windowUnderMouse = Lib.WindowFromPoint(hookStruct.pt);
 				StringBuilder className = new StringBuilder(256);
-				NativeMethods.GetClassName(windowUnderMouse, className, className.Capacity);
+				Lib.GetClassName(windowUnderMouse, className, className.Capacity);
 
 				string cls = className.ToString();
 				if (cls == "SysListView32" || cls == "SHELLDLL_DefView" || cls == "WorkerW" || cls == "Progman")
 				{
 					Point clientPoint = webView.PointToClient(hookStruct.pt);
-
-					IntPtr mousePosParam = NativeMethods.MakeLParam(clientPoint.X, clientPoint.Y);
-
+					IntPtr mousePosParam = Lib.MakeLParam(clientPoint.X, clientPoint.Y);
 					uint msg = (uint)wParam;
 					IntPtr interactionFlags = IntPtr.Zero;
 
-					if (msg == NativeMethods.WM_LBUTTONDOWN)
+					if (msg == Lib.WM_LBUTTONDOWN) interactionFlags = (IntPtr)0x0001;
+					else if (msg == Lib.WM_MOUSEMOVE)
 					{
-						interactionFlags = (IntPtr)0x0001;
-					}
-					else if (msg == NativeMethods.WM_LBUTTONUP)
-					{
-						interactionFlags = IntPtr.Zero;
-					}
-					else if (msg == NativeMethods.WM_MOUSEMOVE)
-					{
-						bool isLeftDown = (NativeMethods.GetAsyncKeyState(0x01) & 0x8000) != 0;
+						bool isLeftDown = (Lib.GetAsyncKeyState(0x01) & 0x8000) != 0;
 						interactionFlags = isLeftDown ? (IntPtr)0x0001 : IntPtr.Zero;
 					}
 
-					if (msg == NativeMethods.WM_LBUTTONDOWN ||
-						msg == NativeMethods.WM_LBUTTONUP ||
-						msg == NativeMethods.WM_MOUSEMOVE)
+					if (msg == Lib.WM_LBUTTONDOWN || msg == Lib.WM_LBUTTONUP || msg == Lib.WM_MOUSEMOVE)
 					{
-						NativeMethods.PostMessage(_chromeRenderWidgetHostHWND, msg, interactionFlags, mousePosParam);
+						Lib.PostMessage(_chromeRenderWidgetHostHWND, msg, interactionFlags, mousePosParam);
 					}
 				}
 			}
-			catch (ObjectDisposedException)
-			{
-				_chromeRenderWidgetHostHWND = IntPtr.Zero;
-			}
 			catch { }
 		}
-		return NativeMethods.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
-	}
-
-	private async void InitializeServerAsync()
-	{
-		const string url = "http://127.0.0.1:43210/";
-		bool serverExists = false;
-
-		try
-		{
-			var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
-			var response = await httpClient.GetAsync(url, cts.Token);
-			serverExists = true;
-			Console.WriteLine("[Server] Existing server detected.");
-		}
-		catch { }
-
-		if (!serverExists)
-		{
-			lock (serverLock)
-			{
-				if (sharedServer == null)
-				{
-					sharedServer = new EmbeddedServer(url);
-					Task.Run(() => sharedServer.Start());
-				}
-			}
-		}
+		return Lib.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
 	}
 
 	private void PinToDesktop()
 	{
-		IntPtr progman = NativeMethods.FindWindow("Progman", null);
+		IntPtr progman = Lib.FindWindow("Progman", null);
 		if (progman == IntPtr.Zero) return;
 
-		NativeMethods.SendMessageTimeout(progman, 0x052C, new IntPtr(0), IntPtr.Zero, 0x0000, 1000, out _);
+		Lib.SendMessageTimeout(progman, 0x052C, new IntPtr(0), IntPtr.Zero, 0x0000, 1000, out _);
 
 		IntPtr workerW = IntPtr.Zero;
-
 		if (Environment.OSVersion.Version.Build >= 22000)
 		{
 			IntPtr child = IntPtr.Zero;
 			do
 			{
-				child = NativeMethods.FindWindowEx(progman, child, "WorkerW", null);
-				if (child != IntPtr.Zero)
-				{
-					workerW = child;
-					break;
-				}
+				child = Lib.FindWindowEx(progman, child, "WorkerW", null);
+				if (child != IntPtr.Zero) { workerW = child; break; }
 			} while (child != IntPtr.Zero);
 		}
 		else
 		{
 			IntPtr resultWorkerW = IntPtr.Zero;
-			NativeMethods.EnumWindows((toplevelHandle, param) =>
+			Lib.EnumWindows((toplevelHandle, param) =>
 			{
-				IntPtr shellView = NativeMethods.FindWindowEx(toplevelHandle, IntPtr.Zero, "SHELLDLL_DefView", null);
-				if (shellView != IntPtr.Zero)
-				{
-					resultWorkerW = NativeMethods.FindWindowEx(IntPtr.Zero, toplevelHandle, "WorkerW", null);
-				}
+				IntPtr shellView = Lib.FindWindowEx(toplevelHandle, IntPtr.Zero, "SHELLDLL_DefView", null);
+				if (shellView != IntPtr.Zero) resultWorkerW = Lib.FindWindowEx(IntPtr.Zero, toplevelHandle, "WorkerW", null);
 				return true;
 			}, IntPtr.Zero);
 			workerW = resultWorkerW;
@@ -275,23 +206,14 @@ public class WaifuPaperWindow : Form
 
 		if (workerW != IntPtr.Zero)
 		{
-			Console.WriteLine($"[Debug] Pinning to WorkerW: 0x{workerW.ToInt64():X}");
-			NativeMethods.SetParent(this.Handle, workerW);
-
-			int style = NativeMethods.GetWindowLong(this.Handle, NativeMethods.GWL_STYLE);
-			style |= NativeMethods.WS_CHILD;
-			style &= ~NativeMethods.WS_POPUP;
-			NativeMethods.SetWindowLong(this.Handle, NativeMethods.GWL_STYLE, style);
-
+			Lib.SetParent(this.Handle, workerW);
+			int style = Lib.GetWindowLong(this.Handle, Lib.GWL_STYLE);
+			style |= Lib.WS_CHILD;
+			style &= ~Lib.WS_POPUP;
+			Lib.SetWindowLong(this.Handle, Lib.GWL_STYLE, style);
 			this.Location = new Point(0, 0);
 			this.Size = currentScreen.Bounds.Size;
-
-			NativeMethods.SetWindowPos(this.Handle, NativeMethods.HWND_BOTTOM, 0, 0, currentScreen.Bounds.Width, currentScreen.Bounds.Height, 0x0040 | 0x0010);
+			Lib.SetWindowPos(this.Handle, Lib.HWND_BOTTOM, 0, 0, currentScreen.Bounds.Width, currentScreen.Bounds.Height, 0x0040 | 0x0010);
 		}
-	}
-
-	public static void StopServer()
-	{
-		sharedServer?.Stop();
 	}
 }

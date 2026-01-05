@@ -1,13 +1,11 @@
 using System.Runtime.InteropServices;
 using System.Drawing;
+using System.Text;
 
 namespace WaifuPaper;
 
-public static class NativeMethods
+public static class Lib
 {
-	[DllImport("kernel32.dll")]
-	public static extern bool AttachConsole(int dwProcessId);
-
 	[DllImport("user32.dll", SetLastError = true)]
 	public static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
 
@@ -22,15 +20,7 @@ public static class NativeMethods
 	public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
 
 	[DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-	public static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
-
-	[DllImport("user32.dll")]
-	public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-	[DllImport("user32.dll", SetLastError = true)]
-	public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
-
-	public const uint GW_HWNDPREV = 3;
+	public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
 	[DllImport("user32.dll", SetLastError = true)]
 	public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
@@ -45,17 +35,11 @@ public static class NativeMethods
 	public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
 	public const int GWL_STYLE = -16;
-	public const int GWL_EXSTYLE = -20;
 	public const int WS_CHILD = 0x40000000;
 	public const int WS_POPUP = unchecked((int)0x80000000);
 	public const int WS_EX_TOOLWINDOW = 0x00000080;
-	public const int WS_EX_APPWINDOW = 0x00040000;
 	public const int WS_EX_NOACTIVATE = 0x08000000;
-
 	public static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
-	public const uint SWP_NOSIZE = 0x0001;
-	public const uint SWP_NOMOVE = 0x0002;
-	public const uint SWP_NOACTIVATE = 0x0010;
 
 	//-------------------------------------------------------
 	// Input Forwarding / Hooks

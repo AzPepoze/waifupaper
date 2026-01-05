@@ -2,127 +2,172 @@ import os
 import sys
 import subprocess
 import shutil
+import concurrent.futures
+import time
+from threading import Lock
 
-def run_command(cmd, cwd=None):
+print_lock = Lock()
+
+def safe_print(msg):
+    with print_lock:
+        print(msg)
+
+def run_command(cmd, cwd=None, name=""):
     try:
-        subprocess.run(cmd, cwd=cwd, check=True, shell=(sys.platform == "win32"))
+        if "dotnet" in cmd:
+            cmd.extend(["-p:EnableWindowsTargeting=true"])
+        subprocess.run(cmd, cwd=cwd, check=True, shell=(sys.platform == "win32"), 
+                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
-        print(f"Error executing {cmd}: {e}")
-        sys.exit(1)
+        err_msg = e.stderr.decode() if e.stderr else "Unknown error"
+        safe_print(f"  [ERROR] {name} failed: {err_msg}")
+        os._exit(1)
 
 def build_frontend(src_dir):
-    print("\n[Frontend] Building Svelte App...")
+    safe_print("[Frontend] Building Svelte App...")
+    start_time = time.time()
     frontend_dir = os.path.join(src_dir, "frontend")
-    
     if not os.path.exists(os.path.join(frontend_dir, "node_modules")):
-        print("Installing frontend dependencies...")
-        run_command(["pnpm", "install"], cwd=frontend_dir)
+        run_command(["pnpm", "install"], cwd=frontend_dir, name="Frontend Install")
+    run_command(["pnpm", "build"], cwd=frontend_dir, name="Frontend Build")
+    safe_print(f"[Frontend] Done in {time.time() - start_time:.2f}s")
+    return os.path.join(frontend_dir, "dist")
+
+def build_windows_component(name, project_path, build_dir):
+    start_time = time.time()
+    safe_print(f"  [Windows][{name}] Building...")
     
-    run_command(["pnpm", "build"], cwd=frontend_dir)
+    temp_publish = os.path.join(build_dir, f"win_{name}_pub")
+    if os.path.exists(temp_publish): shutil.rmtree(temp_publish)
+    
+    proj_build_bin = os.path.join(build_dir, f"win_{name}_bin")
+    proj_build_obj = os.path.join(build_dir, f"win_{name}_obj")
 
-    dist_dir = os.path.join(frontend_dir, "dist")
-    if not os.path.exists(dist_dir) or not os.listdir(dist_dir):
-        print("ERROR: Frontend build failed.")
-        sys.exit(1)
-    return dist_dir
-
-def build_windows(src_dir, build_dir):
-    print("\n[Windows] Building C# Executable...")
-    win_project_path = os.path.join(src_dir, "windows", "WaifuPaper.csproj")
-    win_bin_path = os.path.join(build_dir, "windows_bin")
-    win_obj_path = os.path.join(build_dir, "windows_obj")
-    win_publish_path = os.path.join(build_dir, "windows_publish")
-
+    # Mode: Framework-Dependent, Shared DLLs (Most stable and smallest)
     cmd = [
-        "dotnet", "publish", win_project_path,
+        "dotnet", "publish", project_path,
         "-c", "Release",
         "-r", "win-x64",
-        "--self-contained",
-        "-p:PublishSingleFile=true",
+        "--self-contained", "false", 
+        "-p:PublishSingleFile=false",
         "-p:EnableWindowsTargeting=true",
-        "-p:IncludeNativeLibrariesForSelfExtract=true",
-        f"-p:BaseOutputPath={win_bin_path}/",
-        f"-p:BaseIntermediateOutputPath={win_obj_path}/",
-        "-o", win_publish_path
+        f"-p:BaseOutputPath={proj_build_bin}/",
+        f"-p:BaseIntermediateOutputPath={proj_build_obj}/",
+        "-o", temp_publish
     ]
-    run_command(cmd)
-    return win_publish_path
 
-def pack_windows(win_publish_path, dist_dir, release_dir, skip_zip=False):
-    print("\n[Windows] Preparing assets...")
-    win_frontend_dist_dst = os.path.join(win_publish_path, "frontend", "dist")
-    if os.path.exists(win_frontend_dist_dst):
-        shutil.rmtree(win_frontend_dist_dst)
-    shutil.copytree(dist_dir, win_frontend_dist_dst)
+    run_command(cmd, name=f"Windows {name}")
+    safe_print(f"  [Windows][{name}] Finished in {time.time() - start_time:.2f}s")
+    return temp_publish
 
-    if not skip_zip:
-        print("[Windows] Creating zip...")
-        win_zip_path = os.path.join(release_dir, "windows")
-        shutil.make_archive(win_zip_path, 'zip', win_publish_path)
-        print(f"Windows Zip created: {win_zip_path}.zip")
+def cleanup_windows_files(path):
+    # 1. Remove localized resource folders
+    cultures = ["cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant"]
+    for culture in cultures:
+        culture_path = os.path.join(path, culture)
+        if os.path.isdir(culture_path): shutil.rmtree(culture_path)
+    
+    # 2. Remove Debug symbols, XML, and Dependency metadata
+    for item in os.listdir(path):
+        if item.endswith(".pdb") or item.endswith(".xml") or item.endswith(".deps.json"):
+            file_path = os.path.join(path, item)
+            if os.path.isfile(file_path): os.remove(file_path)
+            
+    # 3. Remove unused WPF library (we use WinForms)
+    wpf_dll = os.path.join(path, "Microsoft.Web.WebView2.Wpf.dll")
+    if os.path.isfile(wpf_dll): os.remove(wpf_dll)
+    
+    # 4. Remove redundant runtimes folder (WebView2Loader is already at root)
+    runtimes_path = os.path.join(path, "runtimes")
+    if os.path.isdir(runtimes_path): shutil.rmtree(runtimes_path)
 
-def build_linux(src_dir, build_dir):
-    print("\n[Linux] Preparing Build...")
-    linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
-    if os.path.exists(linux_pkg_dir):
-        shutil.rmtree(linux_pkg_dir)
-    os.makedirs(linux_pkg_dir)
+def windows_track(src_dir, build_dir, dist_dir, dist_output, release_output, no_pack):
+    try:
+        safe_print("[Windows] Starting Parallel Track...")
+        components = {
+            "server": os.path.join(src_dir, "windows", "Server", "Server.csproj"),
+            "webview": os.path.join(src_dir, "windows", "WebView", "WebView.csproj"),
+            "main": os.path.join(src_dir, "windows", "Main", "Main.csproj")
+        }
 
-    linux_src_dir = os.path.join(src_dir, "linux")
-    for item in os.listdir(linux_src_dir):
-        s = os.path.join(linux_src_dir, item)
-        d = os.path.join(linux_pkg_dir, item)
-        if os.path.isdir(s):
-            shutil.copytree(s, d)
-        else:
-            shutil.copy2(s, d)
-    return linux_pkg_dir
+        temp_folders = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_name = {executor.submit(build_windows_component, name, path, build_dir): name for name, path in components.items()}
+            for future in concurrent.futures.as_completed(future_to_name):
+                temp_folders[future_to_name[future]] = future.result()
 
-def pack_linux(linux_pkg_dir, dist_dir, release_dir, skip_zip=False):
-    print("\n[Linux] Preparing assets...")
-    frontend_dist_dst = os.path.join(linux_pkg_dir, "frontend", "dist")
-    if os.path.exists(frontend_dist_dst):
-        shutil.rmtree(frontend_dist_dst)
-    shutil.copytree(dist_dir, frontend_dist_dst)
+        safe_print("[Windows] Organizing and cleaning distribution...")
+        final_win_root = os.path.join(dist_output, "windows")
+        if os.path.exists(final_win_root): shutil.rmtree(final_win_root)
+        os.makedirs(final_win_root)
 
-    if not skip_zip:
-        print("[Linux] Creating zip...")
-        linux_zip_path = os.path.join(release_dir, "linux")
-        shutil.make_archive(linux_zip_path, 'zip', linux_pkg_dir)
-        print(f"Linux Zip created: {linux_zip_path}.zip")
+        # Merge all into root
+        for folder in temp_folders.values():
+            for item in os.listdir(folder):
+                src, dst = os.path.join(folder, item), os.path.join(final_win_root, item)
+                if os.path.isdir(src):
+                    if not os.path.exists(dst): shutil.copytree(src, dst)
+                else:
+                    if not os.path.exists(dst): shutil.copy2(src, dst)
+        
+        cleanup_windows_files(final_win_root)
+        shutil.copytree(dist_dir, os.path.join(final_win_root, "frontend", "dist"))
+
+        if not no_pack:
+            safe_print("[Windows] Creating Zip archive...")
+            shutil.make_archive(os.path.join(release_output, "windows"), 'zip', final_win_root)
+            safe_print("[Windows] Zip created.")
+        safe_print("[Windows] Track Completed.")
+    except Exception as e:
+        safe_print(f"[Windows] Track failed: {e}")
+
+def build_linux_track(src_dir, build_dir, dist_dir, dist_output, release_output, no_pack):
+    try:
+        safe_print("[Linux] Starting Track...")
+        linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
+        if os.path.exists(linux_pkg_dir): shutil.rmtree(linux_pkg_dir)
+        os.makedirs(linux_pkg_dir)
+
+        linux_src_dir = os.path.join(src_dir, "linux")
+        for item in os.listdir(linux_src_dir):
+            s, d = os.path.join(linux_src_dir, item), os.path.join(linux_pkg_dir, item)
+            shutil.copy2(s, d) if not os.path.isdir(s) else shutil.copytree(s, d)
+
+        final_linux_root = os.path.join(dist_output, "linux")
+        if os.path.exists(final_linux_root): shutil.rmtree(final_linux_root)
+        shutil.copytree(linux_pkg_dir, final_linux_root)
+        shutil.copytree(dist_dir, os.path.join(final_linux_root, "frontend", "dist"))
+
+        if not no_pack:
+            shutil.make_archive(os.path.join(release_output, "linux"), 'zip', final_linux_root)
+        safe_print("[Linux] Track Completed.")
+    except Exception as e:
+        safe_print(f"[Linux] Track failed: {e}")
 
 def main():
     project_root = os.path.dirname(os.path.abspath(__file__))
     src_dir = os.path.join(project_root, "src")
-    release_dir = os.path.join(project_root, "release")
+    dist_output = os.path.join(project_root, "dist")
+    release_output = os.path.join(project_root, "release")
     build_dir = os.path.join(project_root, "build")
-    
     no_pack = "--no-pack" in sys.argv
 
-    if os.path.exists(release_dir):
-        shutil.rmtree(release_dir)
-    os.makedirs(release_dir)
+    for d in [dist_output, release_output, build_dir]:
+        if os.path.exists(d): shutil.rmtree(d)
+        os.makedirs(d)
 
-    print("--- WaifuPaper Build System ---")
-
-    # 1. Build Frontend (Shared)
+    safe_print("--- WaifuPaper Build System ---")
+    total_start = time.time()
     dist_dir = build_frontend(src_dir)
 
-    # 2. Handle Windows Build/Pack
-    try:
-        win_publish_path = build_windows(src_dir, build_dir)
-        pack_windows(win_publish_path, dist_dir, release_dir, skip_zip=no_pack)
-    except Exception as e:
-        print(f"Windows build/pack skipped or failed: {e}")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(windows_track, src_dir, build_dir, dist_dir, dist_output, release_output, no_pack),
+            executor.submit(build_linux_track, src_dir, build_dir, dist_dir, dist_output, release_output, no_pack)
+        ]
+        concurrent.futures.wait(futures)
 
-    # 3. Handle Linux Build/Pack
-    try:
-        linux_pkg_dir = build_linux(src_dir, build_dir)
-        pack_linux(linux_pkg_dir, dist_dir, release_dir, skip_zip=no_pack)
-    except Exception as e:
-        print(f"Linux build/pack skipped or failed: {e}")
-
-    print(f"\nBuild Process Finished. Check '{release_dir}' for outputs.")
+    safe_print(f"\n[System] All builds finished in {time.time() - total_start:.2f}s")
 
 if __name__ == "__main__":
     main()

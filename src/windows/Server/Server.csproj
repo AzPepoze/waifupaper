@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>waifupaper-server</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\Constants.cs" Link="Shared\Constants.cs" />
+    <Compile Include="..\Shared\SharedLib.cs" Link="Shared\SharedLib.cs" />
+    <Compile Include="..\Shared\Tray.cs" Link="Shared\Tray.cs" />
+  </ItemGroup>
+
+</Project>
