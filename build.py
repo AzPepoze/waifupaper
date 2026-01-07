@@ -169,21 +169,44 @@ def main():
     dist_output = os.path.join(project_root, "dist")
     release_output = os.path.join(project_root, "release")
     build_dir = os.path.join(project_root, "build")
+    total_start = time.time()
+    
     no_pack = "--no-pack" in sys.argv
+    target = None
+    if "--target" in sys.argv:
+        try:
+            idx = sys.argv.index("--target")
+            if idx + 1 < len(sys.argv):
+                target = sys.argv[idx + 1]
+        except ValueError:
+            pass
 
-    for d in [dist_output, release_output, build_dir]:
-        if os.path.exists(d):
-            shutil.rmtree(d)
-        os.makedirs(d)
+    # Selective cleanup
+    if target:
+        for d in [os.path.join(dist_output, target), os.path.join(release_output, target + ".zip")]:
+            if os.path.exists(d):
+                if os.path.isdir(d): shutil.rmtree(d)
+                else: os.remove(d)
+    else:
+        for d in [dist_output, release_output, build_dir]:
+            if os.path.exists(d):
+                shutil.rmtree(d)
+            os.makedirs(d)
+
+    if not os.path.exists(build_dir): os.makedirs(build_dir)
+    if not os.path.exists(dist_output): os.makedirs(dist_output)
+    if not os.path.exists(release_output): os.makedirs(release_output)
 
     safe_print("--- BrowserAsWallpaper Build System ---")
-    total_start = time.time()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack),
-            executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack),
-        ]
+        futures = []
+        if target is None or target == "windows":
+            futures.append(executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack))
+        
+        if target is None or target == "linux":
+            futures.append(executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack))
+        
         concurrent.futures.wait(futures)
 
     safe_print(f"\n[System] All builds finished in {time.time() - total_start:.2f}s")
