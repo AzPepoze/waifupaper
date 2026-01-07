@@ -26,4 +26,22 @@ fi
 
 # Run the application
 echo "Starting WaifuPaper (Linux)..."
+
+# Start server in background
+python3 "$SCRIPT_DIR/server.py" &
+SERVER_PID=$!
+
+# Function to cleanup background processes
+cleanup() {
+    echo "Stopping server (PID: $SERVER_PID)..."
+    kill $SERVER_PID
+}
+
+# Trap exit signals to ensure cleanup
+trap cleanup EXIT INT TERM
+
+# Give server a moment to start
+sleep 1
+
+# Start webview
 python3 "$SCRIPT_DIR/webview.py"

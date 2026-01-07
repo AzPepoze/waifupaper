@@ -3,20 +3,34 @@ import socketserver
 import urllib.request
 import os
 import sys
+import json
+from urllib.parse import urlparse, parse_qs
 
 # Configuration
-PORT = 43210
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-# Switch to Yande.re (Same Moebooru API format)
-API_URL = "https://yande.re/post.json?limit=1&tags=order:random+rating:safe"
 
-# Locate Frontend Dist
-# Checks local directory (Release mode) then parent directory (Dev mode)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(SCRIPT_DIR, "frontend", "dist")
+FRONTEND_DIR = os.path.join(SCRIPT_DIR, "frontend")
 
 if not os.path.exists(FRONTEND_DIR):
     FRONTEND_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "frontend", "dist")
+
+def load_config():
+    """Loads configuration from config.json."""
+    config_path = os.path.join(os.path.dirname(SCRIPT_DIR), "config.json")
+    default_config = {"port": 4955}
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[Server] Error loading config: {e}")
+    
+    return default_config
+
+config = load_config()
+PORT = config.get("port", 4955)
 
 class WaifuHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -27,11 +41,11 @@ class WaifuHandler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith('/api/proxy'):
             self.handle_proxy()
         else:
+            # Serve static files
             super().do_GET()
 
     def handle_proxy(self):
         """Proxies a request (JSON or Image)."""
-        from urllib.parse import urlparse, parse_qs
         query = parse_qs(urlparse(self.path).query)
         target_url = query.get('url', [None])[0]
 
@@ -65,7 +79,6 @@ def start_server():
         # allow_reuse_address allows restarting quickly without waiting for timeout
         socketserver.TCPServer.allow_reuse_address = True
         with socketserver.TCPServer(("", PORT), WaifuHandler) as httpd:
-            # print(f"[Server] Serving at port {PORT}")
             httpd.serve_forever()
     except OSError as e:
         print(f"[Server] Failed to start on port {PORT}: {e}")

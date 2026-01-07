@@ -112,15 +112,12 @@ def windows_track(src_dir, build_dir, dist_output, release_output, project_root,
         components = {
             "webview": (os.path.join(src_dir, "windows", "WebView", "WebView.csproj"), f"{binary_name}-webview"),
             "main": (os.path.join(src_dir, "windows", "Main", "Main.csproj"), binary_name),
-            "server": (os.path.join(src_dir, "windows", "Server", "Server.csproj"), f"{binary_name}.Server")
+            "server": (os.path.join(src_dir, "windows", "Server", "Server.csproj"), f"{binary_name}.Server"),
         }
 
         temp_folders = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_name = {
-                executor.submit(build_windows_component, name, path, build_dir, asm_name): name 
-                for name, (path, asm_name) in components.items()
-            }
+            future_to_name = {executor.submit(build_windows_component, name, path, build_dir, asm_name): name for name, (path, asm_name) in components.items()}
             for future in concurrent.futures.as_completed(future_to_name):
                 temp_folders[future_to_name[future]] = future.result()
 
@@ -142,11 +139,10 @@ def windows_track(src_dir, build_dir, dist_output, release_output, project_root,
 
         cleanup_windows_files(final_win_root)
 
-        # Copy Frontend
         safe_print("[Windows] Copying frontend assets...")
-        dest_frontend = os.path.join(final_win_root, "frontend", "dist")
-        if os.path.exists(os.path.dirname(dest_frontend)):
-             shutil.rmtree(os.path.dirname(dest_frontend))
+        dest_frontend = os.path.join(final_win_root, "frontend")
+        if os.path.exists(dest_frontend):
+            shutil.rmtree(dest_frontend)
         shutil.copytree(frontend_dist, dest_frontend)
 
         config_src = os.path.join(src_dir, "config.json")
@@ -187,11 +183,10 @@ def build_linux_track(src_dir, build_dir, dist_output, release_output, project_r
             shutil.rmtree(final_linux_root)
         shutil.copytree(linux_pkg_dir, final_linux_root)
 
-        # Copy Frontend
         safe_print("[Linux] Copying frontend assets...")
-        dest_frontend = os.path.join(final_linux_root, "frontend", "dist")
-        if os.path.exists(os.path.dirname(dest_frontend)):
-             shutil.rmtree(os.path.dirname(dest_frontend))
+        dest_frontend = os.path.join(final_linux_root, "frontend")
+        if os.path.exists(dest_frontend):
+            shutil.rmtree(dest_frontend)
         shutil.copytree(frontend_dist, dest_frontend)
 
         config_src = os.path.join(src_dir, "config.json")
@@ -211,10 +206,10 @@ def main():
     dist_output = os.path.join(project_root, "dist")
     release_output = os.path.join(project_root, "release")
     build_dir = os.path.join(project_root, "build")
-    
+
     config = load_config(src_dir)
     binary_name = config.get("binary_name", "browser-as-wallpaper")
-    
+
     no_pack = "--no-pack" in sys.argv
     target = None
     if "--target" in sys.argv:
@@ -229,17 +224,22 @@ def main():
     if target:
         for d in [os.path.join(dist_output, target), os.path.join(release_output, target + ".zip")]:
             if os.path.exists(d):
-                if os.path.isdir(d): shutil.rmtree(d)
-                else: os.remove(d)
+                if os.path.isdir(d):
+                    shutil.rmtree(d)
+                else:
+                    os.remove(d)
     else:
         for d in [dist_output, release_output, build_dir]:
             if os.path.exists(d):
                 shutil.rmtree(d)
             os.makedirs(d)
-            
-    if not os.path.exists(build_dir): os.makedirs(build_dir)
-    if not os.path.exists(dist_output): os.makedirs(dist_output)
-    if not os.path.exists(release_output): os.makedirs(release_output)
+
+    if not os.path.exists(build_dir):
+        os.makedirs(build_dir)
+    if not os.path.exists(dist_output):
+        os.makedirs(dist_output)
+    if not os.path.exists(release_output):
+        os.makedirs(release_output)
 
     safe_print("--- WaifuPaper Build System ---")
     total_start = time.time()
@@ -251,10 +251,10 @@ def main():
         futures = []
         if target is None or target == "windows":
             futures.append(executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name, frontend_dist))
-        
+
         if target is None or target == "linux":
             futures.append(executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name, frontend_dist))
-        
+
         concurrent.futures.wait(futures)
 
     safe_print(f"\n[System] All builds finished in {time.time() - total_start:.2f}s")

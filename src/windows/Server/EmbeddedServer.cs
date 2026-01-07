@@ -18,14 +18,10 @@ public class EmbeddedServer
 		listener = new HttpListener();
 		listener.Prefixes.Add(url);
 		
-		// Locate frontend/dist directory
 		string baseDir = AppContext.BaseDirectory;
 		
-		// Check standard release structure: ./frontend/dist
-		string releasePath = Path.Combine(baseDir, "frontend", "dist");
+		string releasePath = Path.Combine(baseDir, "frontend");
 		
-		// Check dev structure: ../../../src/frontend/dist (assuming bin/Debug/netX.X)
-		// Or ../../../frontend/dist based on current file structure
 		string devPath = Path.Combine(baseDir, "..", "..", "..", "frontend", "dist");
 
 		if (Directory.Exists(releasePath))
@@ -39,7 +35,7 @@ public class EmbeddedServer
 		else
 		{
 			// Fallback or error state, though we'll try to run anyway
-			webRoot = Path.Combine(baseDir, "frontend", "dist");
+			webRoot = Path.Combine(baseDir, "frontend");
 		}
 	}
 
