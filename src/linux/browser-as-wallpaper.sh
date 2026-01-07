@@ -21,9 +21,6 @@ source "$VENV_DIR/bin/activate"
 
 # Install dependencies if requirements.txt exists
 if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
-    # Check if we need to install (simple check: pip freeze)
-    # Or just install every time (it's fast if already satisfied)
-    # echo "Checking dependencies..."
     pip install -r "$SCRIPT_DIR/requirements.txt" > /dev/null 2>&1
 fi
 

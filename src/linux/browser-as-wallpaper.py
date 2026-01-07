@@ -23,7 +23,8 @@ except ValueError:
     sys.exit(1)
 
 from gi.repository import Gtk, Gio, WebKit
-from constants import APP_ID, DEFAULT_URL
+from constants import APP_ID
+
 
 class BrowserAsWallpaperApp(Gtk.Application):
     def __init__(self):
@@ -33,14 +34,20 @@ class BrowserAsWallpaperApp(Gtk.Application):
         self.config = self.load_config()
 
     def load_config(self):
-        config_path = os.path.join(os.path.dirname(self.project_dir), "config.json")
-        default_config = {"url": DEFAULT_URL, "app_name": "BrowserAsWallpaper", "user_agent": ""}
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Error loading config: {e}")
+        possible_paths = [os.path.join(self.project_dir, "config.json"), os.path.join(os.path.dirname(self.project_dir), "config.json")]
+
+        default_config = {"url": "https://google.com", "app_name": "BrowserAsWallpaper", "user_agent": ""}
+
+        for config_path in possible_paths:
+            if os.path.exists(config_path):
+                try:
+                    with open(config_path, "r") as f:
+                        print(f"Loading config from: {config_path}")
+                        return json.load(f)
+                except Exception as e:
+                    print(f"Error loading config from {config_path}: {e}")
+
+        print("Config file not found in any standard location, using default configuration.")
         return default_config
 
     def do_activate(self):
@@ -80,12 +87,12 @@ class BrowserAsWallpaperApp(Gtk.Application):
         web_view = WebKit.WebView()
         settings = web_view.get_settings()
         settings.set_enable_developer_extras(True)
-        
+
         user_agent = self.config.get("user_agent")
         if user_agent:
             settings.set_user_agent(user_agent)
-            
-        url = self.config.get("url", DEFAULT_URL)
+
+        url = self.config.get("url", "https://google.com")
         web_view.load_uri(url)
         window.set_child(web_view)
 
@@ -93,6 +100,7 @@ class BrowserAsWallpaperApp(Gtk.Application):
         if self.tray_process:
             self.tray_process.terminate()
         Gio.Application.do_shutdown(self)
+
 
 if __name__ == "__main__":
     app = BrowserAsWallpaperApp()

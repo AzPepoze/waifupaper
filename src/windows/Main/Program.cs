@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Text.Json;
+using BrowserAsWallpaper;
 
 namespace BrowserAsWallpaper.Main;
 
@@ -27,7 +28,8 @@ static class Program
 		}
 		catch { }
 
-		LoadConfig();
+		var config = ConfigLoader.Load();
+		appName = config.app_name;
 		Console.WriteLine($"[Main] Starting {appName}...");
 
 		ApplicationConfiguration.Initialize();
@@ -42,34 +44,6 @@ static class Program
 		trayIcon = Tray.CreateTray(appName, OnExit);
 
 		Application.Run();
-	}
-
-	private static void LoadConfig()
-	{
-		string configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
-		if (!File.Exists(configPath))
-		{
-			// Try src folder (relative to bin/Debug/net8.0-windows/win-x64)
-			string devPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "config.json");
-			if (File.Exists(devPath)) configPath = devPath;
-		}
-
-		if (File.Exists(configPath))
-		{
-			try
-			{
-				string jsonString = File.ReadAllText(configPath);
-				var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
-				if (config != null && config.ContainsKey("app_name"))
-				{
-					appName = config["app_name"];
-				}
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"[Config] Error loading config: {ex.Message}");
-			}
-		}
 	}
 
 	private static void StartProcess(string path, string args)

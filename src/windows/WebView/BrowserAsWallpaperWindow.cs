@@ -23,9 +23,9 @@ public class BrowserAsWallpaperWindow : Form
 	{
 		this.currentScreen = screen;
 		
-		var config = LoadConfig();
-		this.targetUrl = config.ContainsKey("url") ? config["url"] : Constants.DefaultUrl;
-		this.userAgent = config.ContainsKey("user_agent") ? config["user_agent"] : "";
+		var config = ConfigLoader.Load();
+		this.targetUrl = config.url;
+		this.userAgent = config.user_agent;
 
 		Console.WriteLine($"[Window] Initializing for screen: {screen.DeviceName}");
 		this.FormBorderStyle = FormBorderStyle.None;
@@ -38,31 +38,6 @@ public class BrowserAsWallpaperWindow : Form
 		webView = null!;
 		_proc = HookCallback;
 		_mouseHookID = SetHook(_proc);
-	}
-
-	private Dictionary<string, string> LoadConfig()
-	{
-		string configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
-		if (!File.Exists(configPath))
-		{
-			// Try src folder (relative to bin/Debug/net8.0-windows/win-x64)
-			string devPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "config.json");
-			if (File.Exists(devPath)) configPath = devPath;
-		}
-
-		if (File.Exists(configPath))
-		{
-			try
-			{
-				string jsonString = File.ReadAllText(configPath);
-				return JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString) ?? new Dictionary<string, string>();
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"[Config] Error loading config: {ex.Message}");
-			}
-		}
-		return new Dictionary<string, string>();
 	}
 
 	protected override bool ShowWithoutActivation => true;

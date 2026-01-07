@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\Constants.cs" Link="Shared\Constants.cs" />
+    <Compile Include="..\Shared\SharedLib.cs" Link="Shared\SharedLib.cs" />
     <Compile Include="..\Shared\Tray.cs" Link="Shared\Tray.cs" />
   </ItemGroup>
 

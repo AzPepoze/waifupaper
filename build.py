@@ -8,20 +8,22 @@ from threading import Lock
 
 print_lock = Lock()
 
+
 def safe_print(msg):
     with print_lock:
         print(msg)
+
 
 def run_command(cmd, cwd=None, name=""):
     try:
         if "dotnet" in cmd:
             cmd.extend(["-p:EnableWindowsTargeting=true"])
-        subprocess.run(cmd, cwd=cwd, check=True, shell=(sys.platform == "win32"), 
-                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        subprocess.run(cmd, cwd=cwd, check=True, shell=(sys.platform == "win32"), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         err_msg = e.stderr.decode() if e.stderr else "Unknown error"
-        safe_print(f"  [ERROR] {name} failed: {err_msg}")
+        safe_print(f"[ERROR] {name} failed: {err_msg}")
         os._exit(1)
+
 
 def build_frontend(src_dir):
     safe_print("[Frontend] Building Svelte App...")
@@ -33,56 +35,67 @@ def build_frontend(src_dir):
     safe_print(f"[Frontend] Done in {time.time() - start_time:.2f}s")
     return os.path.join(frontend_dir, "dist")
 
+
 def build_windows_component(name, project_path, build_dir):
     start_time = time.time()
-    safe_print(f"  [Windows][{name}] Building...")
-    
+    safe_print(f"[Windows][{name}] Building...")
+
     temp_publish = os.path.join(build_dir, f"win_{name}_pub")
-    if os.path.exists(temp_publish): shutil.rmtree(temp_publish)
-    
+    if os.path.exists(temp_publish):
+        shutil.rmtree(temp_publish)
+
     proj_build_bin = os.path.join(build_dir, f"win_{name}_bin")
     proj_build_obj = os.path.join(build_dir, f"win_{name}_obj")
 
     cmd = [
-        "dotnet", "publish", project_path,
-        "-c", "Release",
-        "-r", "win-x64",
-        "--self-contained", "false", 
+        "dotnet",
+        "publish",
+        project_path,
+        "-c",
+        "Release",
+        "-r",
+        "win-x64",
+        "--self-contained",
+        "false",
         "-p:PublishSingleFile=false",
         "-p:EnableWindowsTargeting=true",
         f"-p:BaseOutputPath={proj_build_bin}/",
         f"-p:BaseIntermediateOutputPath={proj_build_obj}/",
-        "-o", temp_publish
+        "-o",
+        temp_publish,
     ]
 
     run_command(cmd, name=f"Windows {name}")
-    safe_print(f"  [Windows][{name}] Finished in {time.time() - start_time:.2f}s")
+    safe_print(f"[Windows][{name}] Finished in {time.time() - start_time:.2f}s")
     return temp_publish
+
 
 def cleanup_windows_files(path):
     cultures = ["cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant"]
     for culture in cultures:
         culture_path = os.path.join(path, culture)
-        if os.path.isdir(culture_path): shutil.rmtree(culture_path)
-    
+        if os.path.isdir(culture_path):
+            shutil.rmtree(culture_path)
+
     for item in os.listdir(path):
         if item.endswith(".pdb") or item.endswith(".xml") or item.endswith(".deps.json"):
             file_path = os.path.join(path, item)
-            if os.path.isfile(file_path): os.remove(file_path)
-            
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
     wpf_dll = os.path.join(path, "Microsoft.Web.WebView2.Wpf.dll")
-    if os.path.isfile(wpf_dll): os.remove(wpf_dll)
-    
+    if os.path.isfile(wpf_dll):
+        os.remove(wpf_dll)
+
     runtimes_path = os.path.join(path, "runtimes")
-    if os.path.isdir(runtimes_path): shutil.rmtree(runtimes_path)
+    if os.path.isdir(runtimes_path):
+        shutil.rmtree(runtimes_path)
+
 
 def windows_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack):
     try:
         safe_print("[Windows] Starting Parallel Track...")
-        components = {
-            "webview": os.path.join(src_dir, "windows", "WebView", "WebView.csproj"),
-            "main": os.path.join(src_dir, "windows", "Main", "Main.csproj")
-        }
+        components = {"webview": os.path.join(src_dir, "windows", "WebView", "WebView.csproj"), "main": os.path.join(src_dir, "windows", "Main", "Main.csproj")}
 
         temp_folders = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
@@ -92,36 +105,41 @@ def windows_track(src_dir, build_dir, dist_output, release_output, project_root,
 
         safe_print("[Windows] Organizing and cleaning distribution...")
         final_win_root = os.path.join(dist_output, "windows")
-        if os.path.exists(final_win_root): shutil.rmtree(final_win_root)
+        if os.path.exists(final_win_root):
+            shutil.rmtree(final_win_root)
         os.makedirs(final_win_root)
 
         for folder in temp_folders.values():
             for item in os.listdir(folder):
                 src, dst = os.path.join(folder, item), os.path.join(final_win_root, item)
                 if os.path.isdir(src):
-                    if not os.path.exists(dst): shutil.copytree(src, dst)
+                    if not os.path.exists(dst):
+                        shutil.copytree(src, dst)
                 else:
-                    if not os.path.exists(dst): shutil.copy2(src, dst)
-        
+                    if not os.path.exists(dst):
+                        shutil.copy2(src, dst)
+
         cleanup_windows_files(final_win_root)
-        
+
         config_src = os.path.join(src_dir, "config.json")
         if os.path.exists(config_src):
             shutil.copy2(config_src, os.path.join(final_win_root, "config.json"))
 
         if not no_pack:
             safe_print("[Windows] Creating Zip archive...")
-            shutil.make_archive(os.path.join(release_output, "windows"), 'zip', final_win_root)
+            shutil.make_archive(os.path.join(release_output, "windows"), "zip", final_win_root)
             safe_print("[Windows] Zip created.")
         safe_print("[Windows] Track Completed.")
     except Exception as e:
         safe_print(f"[Windows] Track failed: {e}")
 
+
 def build_linux_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack):
     try:
         safe_print("[Linux] Starting Track...")
         linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
-        if os.path.exists(linux_pkg_dir): shutil.rmtree(linux_pkg_dir)
+        if os.path.exists(linux_pkg_dir):
+            shutil.rmtree(linux_pkg_dir)
         os.makedirs(linux_pkg_dir)
 
         linux_src_dir = os.path.join(src_dir, "linux")
@@ -130,18 +148,20 @@ def build_linux_track(src_dir, build_dir, dist_output, release_output, project_r
             shutil.copy2(s, d) if not os.path.isdir(s) else shutil.copytree(s, d)
 
         final_linux_root = os.path.join(dist_output, "linux")
-        if os.path.exists(final_linux_root): shutil.rmtree(final_linux_root)
+        if os.path.exists(final_linux_root):
+            shutil.rmtree(final_linux_root)
         shutil.copytree(linux_pkg_dir, final_linux_root)
-        
+
         config_src = os.path.join(src_dir, "config.json")
         if os.path.exists(config_src):
             shutil.copy2(config_src, os.path.join(final_linux_root, "config.json"))
 
         if not no_pack:
-            shutil.make_archive(os.path.join(release_output, "linux"), 'zip', final_linux_root)
+            shutil.make_archive(os.path.join(release_output, "linux"), "zip", final_linux_root)
         safe_print("[Linux] Track Completed.")
     except Exception as e:
         safe_print(f"[Linux] Track failed: {e}")
+
 
 def main():
     project_root = os.path.dirname(os.path.abspath(__file__))
@@ -152,7 +172,8 @@ def main():
     no_pack = "--no-pack" in sys.argv
 
     for d in [dist_output, release_output, build_dir]:
-        if os.path.exists(d): shutil.rmtree(d)
+        if os.path.exists(d):
+            shutil.rmtree(d)
         os.makedirs(d)
 
     safe_print("--- BrowserAsWallpaper Build System ---")
@@ -161,11 +182,12 @@ def main():
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
             executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack),
-            executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack)
+            executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack),
         ]
         concurrent.futures.wait(futures)
 
     safe_print(f"\n[System] All builds finished in {time.time() - total_start:.2f}s")
+
 
 if __name__ == "__main__":
     main()
