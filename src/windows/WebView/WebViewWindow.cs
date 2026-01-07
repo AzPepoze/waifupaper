@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace BrowserAsWallpaper;
 
-public class BrowserAsWallpaperWindow : Form
+public class WebViewWindow : Form
 {
 	private WebView2 webView;
 	private Screen currentScreen;
@@ -19,10 +19,10 @@ public class BrowserAsWallpaperWindow : Form
 	private Lib.LowLevelMouseProc _proc;
 	private IntPtr _chromeRenderWidgetHostHWND = IntPtr.Zero;
 
-	public BrowserAsWallpaperWindow(Screen screen)
+	public WebViewWindow(Screen screen)
 	{
 		this.currentScreen = screen;
-		
+
 		var config = ConfigLoader.Load();
 		this.targetUrl = config.url;
 		this.userAgent = config.user_agent;
@@ -81,7 +81,7 @@ public class BrowserAsWallpaperWindow : Form
 
 			webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
 			webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
-			
+
 			if (!string.IsNullOrEmpty(userAgent))
 			{
 				webView.CoreWebView2.Settings.UserAgent = userAgent;

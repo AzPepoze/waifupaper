@@ -20,7 +20,6 @@ public static class ConfigLoader
 		string configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
 		if (!File.Exists(configPath))
 		{
-			// Try src folder (relative to bin/Debug/net8.0-windows/win-x64)
 			string devPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "config.json");
 			if (File.Exists(devPath)) configPath = devPath;
 		}

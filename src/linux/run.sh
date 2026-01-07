@@ -26,4 +26,4 @@ fi
 
 # Run the application
 echo "Starting BrowserAsWallpaper (Linux)..."
-python3 "$SCRIPT_DIR/browser-as-wallpaper.py"
+python3 "$SCRIPT_DIR/webview.py"

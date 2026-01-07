@@ -9,7 +9,7 @@ namespace BrowserAsWallpaper.WebView;
 
 static class Program
 {
-	private static List<BrowserAsWallpaperWindow> windows = new List<BrowserAsWallpaperWindow>();
+	private static List<WebViewWindow> windows = new List<WebViewWindow>();
 	private static NotifyIcon? trayIcon;
 
 	[STAThread]
@@ -32,7 +32,7 @@ static class Program
 
 		foreach (Screen screen in Screen.AllScreens)
 		{
-			BrowserAsWallpaperWindow window = new BrowserAsWallpaperWindow(screen);
+			WebViewWindow window = new WebViewWindow(screen);
 			window.Show();
 			windows.Add(window);
 		}
@@ -40,7 +40,8 @@ static class Program
 		// Only show tray if not disabled by main launcher
 		if (!args.Contains("--no-tray"))
 		{
-			trayIcon = Tray.CreateTray("BrowserAsWallpaper WebView", (s, e) => {
+			trayIcon = Tray.CreateTray("BrowserAsWallpaper WebView", (s, e) =>
+			{
 				trayIcon!.Visible = false;
 				Application.Exit();
 			});
