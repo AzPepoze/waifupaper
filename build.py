@@ -106,7 +106,7 @@ def cleanup_windows_files(path):
         shutil.rmtree(runtimes_path)
 
 
-def windows_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name):
+def windows_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name, frontend_dist):
     try:
         safe_print("[Windows] Starting Parallel Track...")
         components = {
@@ -142,6 +142,13 @@ def windows_track(src_dir, build_dir, dist_output, release_output, project_root,
 
         cleanup_windows_files(final_win_root)
 
+        # Copy Frontend
+        safe_print("[Windows] Copying frontend assets...")
+        dest_frontend = os.path.join(final_win_root, "frontend", "dist")
+        if os.path.exists(os.path.dirname(dest_frontend)):
+             shutil.rmtree(os.path.dirname(dest_frontend))
+        shutil.copytree(frontend_dist, dest_frontend)
+
         config_src = os.path.join(src_dir, "config.json")
         if os.path.exists(config_src):
             shutil.copy2(config_src, os.path.join(final_win_root, "config.json"))
@@ -155,7 +162,7 @@ def windows_track(src_dir, build_dir, dist_output, release_output, project_root,
         safe_print(f"[Windows] Track failed: {e}")
 
 
-def build_linux_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name):
+def build_linux_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name, frontend_dist):
     try:
         safe_print("[Linux] Starting Track...")
         linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
@@ -179,6 +186,13 @@ def build_linux_track(src_dir, build_dir, dist_output, release_output, project_r
         if os.path.exists(final_linux_root):
             shutil.rmtree(final_linux_root)
         shutil.copytree(linux_pkg_dir, final_linux_root)
+
+        # Copy Frontend
+        safe_print("[Linux] Copying frontend assets...")
+        dest_frontend = os.path.join(final_linux_root, "frontend", "dist")
+        if os.path.exists(os.path.dirname(dest_frontend)):
+             shutil.rmtree(os.path.dirname(dest_frontend))
+        shutil.copytree(frontend_dist, dest_frontend)
 
         config_src = os.path.join(src_dir, "config.json")
         if os.path.exists(config_src):
@@ -230,13 +244,16 @@ def main():
     safe_print("--- WaifuPaper Build System ---")
     total_start = time.time()
 
+    # Build Frontend first
+    frontend_dist = build_frontend(src_dir)
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         if target is None or target == "windows":
-            futures.append(executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name))
+            futures.append(executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name, frontend_dist))
         
         if target is None or target == "linux":
-            futures.append(executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name))
+            futures.append(executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name, frontend_dist))
         
         concurrent.futures.wait(futures)
 
