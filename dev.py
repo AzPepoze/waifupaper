@@ -93,7 +93,7 @@ class DevServer:
             self.app_process = self._launch_linux()
 
     def _launch_windows(self):
-        exe_path = os.path.join(os.getcwd(), "build", "windows_publish", "BrowserAsWallpaper.exe")
+        exe_path = os.path.join(os.getcwd(), "build", "windows_publish", "WaifuPaper.exe")
         if os.path.exists(exe_path):
             return subprocess.Popen([exe_path], cwd=os.path.dirname(exe_path))
 
@@ -130,7 +130,7 @@ class DevServer:
         self.needs_restart = True
 
     def run(self):
-        print("--- BrowserAsWallpaper Dev System ---")
+        print("--- WaifuPaper Dev System ---")
         self.ensure_dependencies_installed()
 
         # Start File Watcher

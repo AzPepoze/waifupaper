@@ -1,6 +1,6 @@
-namespace BrowserAsWallpaper;
+namespace WaifuPaper;
 
 public static class Constants
 {
-	public const string AppName = "BrowserAsWallpaper";
+	public const string AppName = "WaifuPaper";
 }

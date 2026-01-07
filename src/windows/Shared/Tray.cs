@@ -1,7 +1,7 @@
 using System.Windows.Forms;
 using System.Drawing;
 
-namespace BrowserAsWallpaper;
+namespace WaifuPaper;
 
 public static class Tray
 {

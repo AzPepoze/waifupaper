@@ -4,12 +4,13 @@ using System.IO;
 using System.Collections.Generic;
 using System;
 
-namespace BrowserAsWallpaper;
+namespace WaifuPaper;
 
 public class AppConfig
 {
 	public string url { get; set; } = "https://google.com";
-	public string app_name { get; set; } = "BrowserAsWallpaper";
+	public int port { get; set; } = 4955;
+	public string app_name { get; set; } = "WaifuPaper";
 	public string user_agent { get; set; } = "";
 }
 

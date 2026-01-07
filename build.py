@@ -95,10 +95,14 @@ def cleanup_windows_files(path):
 def windows_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack):
     try:
         safe_print("[Windows] Starting Parallel Track...")
-        components = {"webview": os.path.join(src_dir, "windows", "WebView", "WebView.csproj"), "main": os.path.join(src_dir, "windows", "Main", "Main.csproj")}
+        components = {
+            "webview": os.path.join(src_dir, "windows", "WebView", "WebView.csproj"),
+            "main": os.path.join(src_dir, "windows", "Main", "Main.csproj"),
+            "server": os.path.join(src_dir, "windows", "Server", "Server.csproj")
+        }
 
         temp_folders = {}
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             future_to_name = {executor.submit(build_windows_component, name, path, build_dir): name for name, path in components.items()}
             for future in concurrent.futures.as_completed(future_to_name):
                 temp_folders[future_to_name[future]] = future.result()
@@ -176,7 +180,7 @@ def main():
             shutil.rmtree(d)
         os.makedirs(d)
 
-    safe_print("--- BrowserAsWallpaper Build System ---")
+    safe_print("--- WaifuPaper Build System ---")
     total_start = time.time()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:

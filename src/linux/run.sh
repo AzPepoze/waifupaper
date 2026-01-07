@@ -25,5 +25,5 @@ if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
 fi
 
 # Run the application
-echo "Starting BrowserAsWallpaper (Linux)..."
+echo "Starting WaifuPaper (Linux)..."
 python3 "$SCRIPT_DIR/webview.py"

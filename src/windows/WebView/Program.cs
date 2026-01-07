@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
 using System.Linq;
-using BrowserAsWallpaper;
+using WaifuPaper;
 
-namespace BrowserAsWallpaper.WebView;
+namespace WaifuPaper.WebView;
 
 static class Program
 {
@@ -40,7 +40,7 @@ static class Program
 		// Only show tray if not disabled by main launcher
 		if (!args.Contains("--no-tray"))
 		{
-			trayIcon = Tray.CreateTray("BrowserAsWallpaper WebView", (s, e) =>
+			trayIcon = Tray.CreateTray("WaifuPaper WebView", (s, e) =>
 			{
 				trayIcon!.Visible = false;
 				Application.Exit();

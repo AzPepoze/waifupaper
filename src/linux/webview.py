@@ -26,7 +26,7 @@ from gi.repository import Gtk, Gio, WebKit
 from constants import APP_ID
 
 
-class BrowserAsWallpaperApp(Gtk.Application):
+class WaifuPaperApp(Gtk.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
         self.tray_process = None
@@ -36,7 +36,7 @@ class BrowserAsWallpaperApp(Gtk.Application):
     def load_config(self):
         possible_paths = [os.path.join(self.project_dir, "config.json"), os.path.join(os.path.dirname(self.project_dir), "config.json")]
 
-        default_config = {"url": "https://google.com", "app_name": "BrowserAsWallpaper", "user_agent": ""}
+        default_config = {"url": "https://google.com", "app_name": "WaifuPaper", "user_agent": ""}
 
         for config_path in possible_paths:
             if os.path.exists(config_path):
@@ -51,7 +51,7 @@ class BrowserAsWallpaperApp(Gtk.Application):
         return default_config
 
     def do_activate(self):
-        app_name = self.config.get("app_name", "BrowserAsWallpaper")
+        app_name = self.config.get("app_name", "WaifuPaper")
         self.start_service("tray.py", str(os.getpid()), app_name)
         window = Gtk.Window(application=self)
         self.setup_layershell(window)
@@ -103,5 +103,5 @@ class BrowserAsWallpaperApp(Gtk.Application):
 
 
 if __name__ == "__main__":
-    app = BrowserAsWallpaperApp()
+    app = WaifuPaperApp()
     app.run(None)

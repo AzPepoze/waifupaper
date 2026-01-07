@@ -6,7 +6,7 @@ using System.Text;
 using System.Net.Http;
 using System.Text.Json;
 
-namespace BrowserAsWallpaper;
+namespace WaifuPaper;
 
 public class WebViewWindow : Form
 {

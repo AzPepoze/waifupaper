@@ -5,15 +5,15 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Text.Json;
-using BrowserAsWallpaper;
+using WaifuPaper;
 
-namespace BrowserAsWallpaper.Main;
+namespace WaifuPaper.Main;
 
 static class Program
 {
 	private static List<Process> childProcesses = new List<Process>();
 	private static NotifyIcon? trayIcon;
-	private static string appName = "BrowserAsWallpaper";
+	private static string appName = "WaifuPaper";
 
 	[STAThread]
 	static void Main(string[] args)
@@ -35,6 +35,9 @@ static class Program
 		ApplicationConfiguration.Initialize();
 
 		string baseDir = AppContext.BaseDirectory;
+		string serverExe = Path.Combine(baseDir, "WaifuPaper.Server.exe");
+		StartProcess(serverExe, "");
+
 		string webviewExe = Path.Combine(baseDir, "browser-as-wallpaper-webview.exe");
 
 		// 1. Start WebView with --no-tray
@@ -50,9 +53,10 @@ static class Program
 	{
 		if (File.Exists(path))
 		{
-			Process? proc = Process.Start(new ProcessStartInfo(path) { 
+			Process? proc = Process.Start(new ProcessStartInfo(path)
+			{
 				Arguments = args,
-				UseShellExecute = true 
+				UseShellExecute = true
 			});
 			if (proc != null) childProcesses.Add(proc);
 		}
@@ -61,7 +65,7 @@ static class Program
 	private static void OnExit(object? sender, EventArgs e)
 	{
 		if (trayIcon != null) trayIcon.Visible = false;
-		
+
 		foreach (var proc in childProcesses)
 		{
 			try { proc.Kill(); } catch { }
