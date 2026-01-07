@@ -112,7 +112,7 @@ def windows_track(src_dir, build_dir, dist_output, release_output, project_root,
         components = {
             "webview": (os.path.join(src_dir, "windows", "WebView", "WebView.csproj"), f"{binary_name}-webview"),
             "main": (os.path.join(src_dir, "windows", "Main", "Main.csproj"), binary_name),
-            "server": (os.path.join(src_dir, "windows", "Server", "Server.csproj"), f"{binary_name}.Server"),
+            "server": (os.path.join(src_dir, "windows", "Server", "Server.csproj"), f"{binary_name}-server"),
         }
 
         temp_folders = {}

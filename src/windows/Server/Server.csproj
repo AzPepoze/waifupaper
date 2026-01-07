@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>WaifuPaper.Server</AssemblyName>
+    <AssemblyName>browser-as-wallpaper-server</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

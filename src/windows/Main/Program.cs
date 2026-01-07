@@ -35,7 +35,7 @@ static class Program
 		ApplicationConfiguration.Initialize();
 
 		string baseDir = AppContext.BaseDirectory;
-		string serverExe = Path.Combine(baseDir, $"{config.binary_name}.Server.exe");
+		string serverExe = Path.Combine(baseDir, $"{config.binary_name}-server.exe");
 		StartProcess(serverExe, "");
 
 		string webviewExe = Path.Combine(baseDir, $"{config.binary_name}-webview.exe");
