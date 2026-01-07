@@ -10,6 +10,8 @@ public class AppConfig
 {
 	public string url { get; set; } = "https://google.com";
 	public string app_name { get; set; } = "BrowserAsWallpaper";
+	public string app_id { get; set; } = "com.azpepoze.browser-as-wallpaper";
+	public string binary_name { get; set; } = "browser-as-wallpaper";
 	public string user_agent { get; set; } = "";
 }
 

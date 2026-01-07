@@ -6,12 +6,25 @@ import concurrent.futures
 import time
 from threading import Lock
 
+import json
+
 print_lock = Lock()
 
 
 def safe_print(msg):
     with print_lock:
         print(msg)
+
+
+def load_config(src_dir):
+    config_path = os.path.join(src_dir, "config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
 
 
 def run_command(cmd, cwd=None, name=""):
@@ -36,9 +49,9 @@ def build_frontend(src_dir):
     return os.path.join(frontend_dir, "dist")
 
 
-def build_windows_component(name, project_path, build_dir):
+def build_windows_component(name, project_path, build_dir, assembly_name):
     start_time = time.time()
-    safe_print(f"[Windows][{name}] Building...")
+    safe_print(f"[Windows][{name}] Building as {assembly_name}...")
 
     temp_publish = os.path.join(build_dir, f"win_{name}_pub")
     if os.path.exists(temp_publish):
@@ -59,6 +72,7 @@ def build_windows_component(name, project_path, build_dir):
         "false",
         "-p:PublishSingleFile=false",
         "-p:EnableWindowsTargeting=true",
+        f"-p:AssemblyName={assembly_name}",
         f"-p:BaseOutputPath={proj_build_bin}/",
         f"-p:BaseIntermediateOutputPath={proj_build_obj}/",
         "-o",
@@ -92,14 +106,20 @@ def cleanup_windows_files(path):
         shutil.rmtree(runtimes_path)
 
 
-def windows_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack):
+def windows_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name):
     try:
         safe_print("[Windows] Starting Parallel Track...")
-        components = {"webview": os.path.join(src_dir, "windows", "WebView", "WebView.csproj"), "main": os.path.join(src_dir, "windows", "Main", "Main.csproj")}
+        components = {
+            "webview": (os.path.join(src_dir, "windows", "WebView", "WebView.csproj"), f"{binary_name}-webview"),
+            "main": (os.path.join(src_dir, "windows", "Main", "Main.csproj"), binary_name)
+        }
 
         temp_folders = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            future_to_name = {executor.submit(build_windows_component, name, path, build_dir): name for name, path in components.items()}
+            future_to_name = {
+                executor.submit(build_windows_component, name, path, build_dir, asm_name): name 
+                for name, (path, asm_name) in components.items()
+            }
             for future in concurrent.futures.as_completed(future_to_name):
                 temp_folders[future_to_name[future]] = future.result()
 
@@ -134,7 +154,7 @@ def windows_track(src_dir, build_dir, dist_output, release_output, project_root,
         safe_print(f"[Windows] Track failed: {e}")
 
 
-def build_linux_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack):
+def build_linux_track(src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name):
     try:
         safe_print("[Linux] Starting Track...")
         linux_pkg_dir = os.path.join(build_dir, "linux_pkg")
@@ -146,6 +166,13 @@ def build_linux_track(src_dir, build_dir, dist_output, release_output, project_r
         for item in os.listdir(linux_src_dir):
             s, d = os.path.join(linux_src_dir, item), os.path.join(linux_pkg_dir, item)
             shutil.copy2(s, d) if not os.path.isdir(s) else shutil.copytree(s, d)
+
+        # Rename launcher to binary_name
+        run_sh = os.path.join(linux_pkg_dir, "run.sh")
+        target_bin = os.path.join(linux_pkg_dir, binary_name)
+        if os.path.exists(run_sh):
+            os.rename(run_sh, target_bin)
+            os.chmod(target_bin, 0o755)
 
         final_linux_root = os.path.join(dist_output, "linux")
         if os.path.exists(final_linux_root):
@@ -170,6 +197,9 @@ def main():
     release_output = os.path.join(project_root, "release")
     build_dir = os.path.join(project_root, "build")
     total_start = time.time()
+    
+    config = load_config(src_dir)
+    binary_name = config.get("binary_name", "browser-as-wallpaper")
     
     no_pack = "--no-pack" in sys.argv
     target = None
@@ -202,10 +232,10 @@ def main():
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         if target is None or target == "windows":
-            futures.append(executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack))
+            futures.append(executor.submit(windows_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name))
         
         if target is None or target == "linux":
-            futures.append(executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack))
+            futures.append(executor.submit(build_linux_track, src_dir, build_dir, dist_output, release_output, project_root, no_pack, binary_name))
         
         concurrent.futures.wait(futures)
 
