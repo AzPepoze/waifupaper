@@ -16,7 +16,7 @@ POLLING_INTERVAL = 0.5
 # Glob patterns to ignore (More accurate than substring matching)
 IGNORE_PATTERNS = ["*/node_modules/*", "*/dist/*", "*/bin/*", "*/obj/*", "*/.git/*", "*/build/*", "*/release/*", "*/__pycache__/*", "*.swp", "*~", "*.pyc", "*.tmp"]
 
-TARGET_PROCESS_NAMES = ["BrowserAsWallpaper.exe", "BrowserAsWallpaper", "python3"]
+TARGET_PROCESS_NAMES = ["WaifuPaper.exe", "WaifuPaper", "python3"]
 
 
 class DevServer:

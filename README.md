@@ -1,58 +1,89 @@
 <p align="center">
-  <h1 align="center">Browser As Wallpaper (BAS)</h1>
+  <h1 align="center">🌸 WaifuPaper 🌸</h1>
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" />
 </p>
 
-A modern, cross-platform application that hosts any web page as your desktop wallpaper.
+A modern, cross-platform live wallpaper application that displays random high-quality anime wallpapers from Konachan directly on your desktop.
+
+## Preview
+
+![Preview](showcase/screen1.png)
+
+## Contents
+
+-    [Features](#features)
+-    [Installation &amp; Usage](#installation--usage)
+     -    [Linux](#linux-wayland)
+     -    [Windows](#windows)
+-    [Development &amp; Building](#development--building)
+-    [Acknowledgments](#acknowledgments)
 
 ## Features
 
-- **Cross-Platform:** Native support for Linux (Wayland/GTK4) and Windows (WinForms/WebView2).
-- **Web-Based:** Use any URL or local web page as a live wallpaper.
-- **System Tray:** Minimal footprint with a system tray icon.
-- **Lightweight:** Low resource usage using system native web engines.
+-    **Cross-Platform:** Native support for Linux (Wayland/GTK4) and Windows (WinForms/WebView2).
+-    **Interactive UI:** Smooth crossfade transitions and a modern "Random" button with backdrop blur.
+-    **System Tray:** Minimal footprint with a system tray icon for easy exit.
+-    **Lightweight:** Low resource usage, serving content via a local embedded proxy.
 
-# Linux (Wayland)
+## Installation & Usage
+
+### Linux (Wayland)
 
 Requires `GTK4`, `WebKitGTK`, and `gtk4-layer-shell`. These dependencies must be installed via your system's package manager.
 
 **Example (Arch Linux):**
 
 ```bash
+
 sudo pacman -S gtk4 webkitgtk-6.0 gtk4-layer-shell libayatana-appindicator python-gobject
+
 ```
 
-1. Run the launcher:
-   ```bash
-   ./browser-as-wallpaper.sh
-   ```
+_Note: For other distributions, please find the equivalent packages (e.g., `libgtk-4-dev`, `libwebkit2gtk-4.1-dev` on Debian/Ubuntu)._
 
-# Windows
+1. Download the latest `waifupaper_v*_linux.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
+2. Extract the archive.
+3. Run the launcher:
+     ```bash
+     ./waifupaper.sh
+     ```
 
-**Requirement:** [.NET 8.0 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) must be installed.
+### Windows
 
-1. Run `browser-as-wallpaper.exe`.
+1. Download the latest `waifupaper_v*_windows.zip` from the [Releases](https://github.com/AzPepoze/waifupaper/releases/latest) page.
+2. Extract and run `WaifuPaper.exe`.
 
-# Development
+## Prerequisites (Windows Build)
 
-## Prerequisites
+To build this project on Windows, you need to install the following:
 
-To build this project, you need:
-
-- **[Python 3](https://www.python.org/)**
+- **[Node.js](https://nodejs.org/en/download/prebuilt-installer)**
+- **[pnpm](https://pnpm.io/installation)**
+- **[Python 3](https://www.python.org/downloads/windows/)** (Make sure to check "Add Python to PATH" during installation)
 - **[.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)**
 
 ## Build Instructions
 
 Run the build script from the project root:
 
-```bash
+```powershell
 python build.py
 ```
 
-- **`dist/`**: Contains unzipped ready-to-run folders.
-- **`release/`**: Contains compressed `.zip` archives.
+The output will be located in the `release/` folder.
 
-# Special Thanks & Appreciation
+## Development
 
-- All the open-source contributors whose libraries made this project possible.
+1. **Install Python Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run Auto-Dev System**:
+   ```bash
+   python dev.py
+   ```
+
+## Acknowledgments
+
+-    Wallpapers provided by [Konachan](https://konachan.net).
