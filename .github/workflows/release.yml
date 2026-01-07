@@ -1,56 +1,56 @@
 name: Build and Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+     push:
+          tags:
+             - 'v*'
 
 permissions:
-  contents: write
+     contents: write
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+     build:
+          runs-on: ubuntu-latest
+          steps:
+             - name: Checkout Code
+               uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+             - name: Setup Node.js
+               uses: actions/setup-node@v4
+               with:
+                    node-version: 20
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+             - name: Setup pnpm
+               uses: pnpm/action-setup@v3
+               with:
+                    version: 9
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
+             - name: Setup .NET
+               uses: actions/setup-dotnet@v4
+               with:
+                    dotnet-version: 8.0.x
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+             - name: Setup Python
+               uses: actions/setup-python@v5
+               with:
+                    python-version: '3.x'
 
-      - name: Build and Package
-        run: python3 build.py
+             - name: Build and Package
+               run: python3 build.py
 
-      - name: Rename Release Files
-        run: |
-          mv release/windows.zip release/browser-as-wallpaper_${{ github.ref_name }}_windows.zip
-          mv release/linux.zip release/browser-as-wallpaper_${{ github.ref_name }}_linux.zip
+             - name: Rename Release Files
+               run: |
+                    mv release/windows.zip release/${{ github.event.repository.name }}_${{ github.ref_name }}_windows.zip
+                    mv release/linux.zip release/${{ github.event.repository.name }}_${{ github.ref_name }}_linux.zip
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release/browser-as-wallpaper_${{ github.ref_name }}_windows.zip
-            release/browser-as-wallpaper_${{ github.ref_name }}_linux.zip
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+             - name: Create Release
+               uses: softprops/action-gh-release@v2
+               with:
+                    files: |
+                         release/${{ github.event.repository.name }}_${{ github.ref_name }}_windows.zip
+                         release/${{ github.event.repository.name }}_${{ github.ref_name }}_linux.zip
+                    name: Release ${{ github.ref_name }}
+                    draft: false
+                    prerelease: false
+               env:
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
