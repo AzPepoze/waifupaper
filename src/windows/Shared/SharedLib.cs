@@ -11,6 +11,8 @@ public class AppConfig
 	public string url { get; set; } = "https://google.com";
 	public int port { get; set; } = 4955;
 	public string app_name { get; set; } = "WaifuPaper";
+	public string app_id { get; set; } = "com.azpepoze.waifupaper";
+	public string binary_name { get; set; } = "WaifuPaper";
 	public string user_agent { get; set; } = "";
 }
 

@@ -6,6 +6,8 @@ import psutil
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
+import json
+
 # -------------------------------------------------------
 # Configuration
 # -------------------------------------------------------
@@ -16,7 +18,20 @@ POLLING_INTERVAL = 0.5
 # Glob patterns to ignore (More accurate than substring matching)
 IGNORE_PATTERNS = ["*/node_modules/*", "*/dist/*", "*/bin/*", "*/obj/*", "*/.git/*", "*/build/*", "*/release/*", "*/__pycache__/*", "*.swp", "*~", "*.pyc", "*.tmp"]
 
-TARGET_PROCESS_NAMES = ["WaifuPaper.exe", "WaifuPaper", "python3"]
+def load_config():
+    config_path = os.path.join(os.getcwd(), "src", "config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+config = load_config()
+binary_name = config.get("binary_name", "browser-as-wallpaper")
+
+TARGET_PROCESS_NAMES = [f"{binary_name}.exe", binary_name, "BrowserAsWallpaper.exe", "BrowserAsWallpaper", "python3"]
 
 
 class DevServer:
@@ -77,7 +92,14 @@ class DevServer:
         try:
             # flush stdout to ensure order of logs
             sys.stdout.flush()
-            subprocess.run([sys.executable, "build.py", "--no-pack"], check=True)
+            
+            cmd = [sys.executable, "build.py", "--no-pack"]
+            if sys.platform == "win32":
+                cmd.extend(["--target", "windows"])
+            else:
+                cmd.extend(["--target", "linux"])
+                
+            subprocess.run(cmd, check=True)
             return True
         except subprocess.CalledProcessError:
             print("[Dev] Build failed!")
@@ -93,21 +115,21 @@ class DevServer:
             self.app_process = self._launch_linux()
 
     def _launch_windows(self):
-        exe_path = os.path.join(os.getcwd(), "build", "windows_publish", "WaifuPaper.exe")
+        exe_path = os.path.join(os.getcwd(), "dist", "windows", f"{binary_name}.exe")
         if os.path.exists(exe_path):
             return subprocess.Popen([exe_path], cwd=os.path.dirname(exe_path))
 
         print(f"[Dev] Binary not found. Using 'dotnet run' fallback.")
-        win_project_dir = os.path.join(os.getcwd(), "src", "windows")
+        win_project_dir = os.path.join(os.getcwd(), "src", "windows", "Main")
         return subprocess.Popen(["dotnet", "run"], cwd=win_project_dir, shell=True)
 
     def _launch_linux(self):
-        linux_pkg_dir = os.path.join(os.getcwd(), "build", "linux_pkg")
-        launcher = os.path.join(linux_pkg_dir, "run.sh")
+        linux_dist_dir = os.path.join(os.getcwd(), "dist", "linux")
+        launcher = os.path.join(linux_dist_dir, binary_name)
 
         if os.path.exists(launcher):
             os.chmod(launcher, 0o755)
-            return subprocess.Popen([launcher], cwd=linux_pkg_dir)
+            return subprocess.Popen([launcher], cwd=linux_dist_dir)
 
         print(f"[Dev] Package not found. Using 'webview.py' fallback.")
         linux_src_dir = os.path.join(os.getcwd(), "src", "linux")

@@ -57,7 +57,12 @@ def main():
     if APP_INDICATOR is None:
         return
 
-    indicator = APP_INDICATOR.Indicator.new("browser-as-wallpaper-tray", "preferences-desktop-wallpaper", APP_INDICATOR.IndicatorCategory.APPLICATION_STATUS)
+    indicator_id = f"{APP_NAME.lower().replace(' ', '-')}-tray"
+    indicator = APP_INDICATOR.Indicator.new(
+        indicator_id,
+        "preferences-desktop-wallpaper",
+        APP_INDICATOR.IndicatorCategory.APPLICATION_STATUS
+    )
     indicator.set_status(APP_INDICATOR.IndicatorStatus.ACTIVE)
     indicator.set_menu(build_menu())
     indicator.set_label(APP_NAME, APP_NAME)

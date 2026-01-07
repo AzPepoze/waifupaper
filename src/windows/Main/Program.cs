@@ -35,10 +35,10 @@ static class Program
 		ApplicationConfiguration.Initialize();
 
 		string baseDir = AppContext.BaseDirectory;
-		string serverExe = Path.Combine(baseDir, "WaifuPaper.Server.exe");
+		string serverExe = Path.Combine(baseDir, $"{config.binary_name}.Server.exe");
 		StartProcess(serverExe, "");
 
-		string webviewExe = Path.Combine(baseDir, "browser-as-wallpaper-webview.exe");
+		string webviewExe = Path.Combine(baseDir, $"{config.binary_name}-webview.exe");
 
 		// 1. Start WebView with --no-tray
 		StartProcess(webviewExe, "--no-tray");

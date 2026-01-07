@@ -23,7 +23,7 @@ except ValueError:
     sys.exit(1)
 
 from gi.repository import Gtk, Gio, WebKit
-from constants import APP_ID
+from config import APP_ID
 
 
 class WaifuPaperApp(Gtk.Application):
