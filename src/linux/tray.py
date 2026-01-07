@@ -2,17 +2,10 @@ import sys
 import os
 import signal
 import gi
+from config import APP_NAME
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
-
-# Default App Name
-APP_NAME = "WaifuPaper"
-
-# Get info from arguments if available
-# argv[1] = parent_pid, argv[2] = app_name
-if len(sys.argv) > 2:
-    APP_NAME = sys.argv[2]
 
 GLib.set_prgname(APP_NAME)
 GLib.set_application_name(APP_NAME)
@@ -58,11 +51,7 @@ def main():
         return
 
     indicator_id = f"{APP_NAME.lower().replace(' ', '-')}-tray"
-    indicator = APP_INDICATOR.Indicator.new(
-        indicator_id,
-        "preferences-desktop-wallpaper",
-        APP_INDICATOR.IndicatorCategory.APPLICATION_STATUS
-    )
+    indicator = APP_INDICATOR.Indicator.new(indicator_id, "preferences-desktop-wallpaper", APP_INDICATOR.IndicatorCategory.APPLICATION_STATUS)
     indicator.set_status(APP_INDICATOR.IndicatorStatus.ACTIVE)
     indicator.set_menu(build_menu())
     indicator.set_label(APP_NAME, APP_NAME)
